@@ -1,0 +1,18 @@
+# Auto detect text files and normalize line endings to LF on checkin
+* text=auto eol=lf
+
+# Source code
+*.cs      text eol=lf
+*.xaml    text eol=lf
+*.csproj  text eol=lf
+*.sln     text eol=lf
+*.slnx    text eol=lf
+*.slnf    text eol=lf
+*.props   text eol=lf
+*.targets text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.md       text eol=lf
+
+# Generated code
+**/Generated/** -diff merge=union
