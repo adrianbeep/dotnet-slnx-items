@@ -28,6 +28,6 @@ We use the [Nygard ADR format](http://thinkrelevance.com/blog/2011/11/15/documen
 | 0003 | YAML for manifest, not XAML | Accepted |
 | 0004 | Reject `.slnf` for `add file`/`add folder` | Accepted |
 | 0005 | `Microsoft.VisualStudio.SolutionPersistence` as persistence | Accepted |
-| 0006 | CLI shape and commands | Pending (issue #1) |
+| 0006 | CLI shape and commands | Accepted |
 
 (Update this table as ADRs are written.)
