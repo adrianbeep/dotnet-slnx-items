@@ -23,7 +23,7 @@ We use the [Nygard ADR format](http://thinkrelevance.com/blog/2011/11/15/documen
 
 | Number | Title | Status |
 |---|---|---|
-| 0001 | Tool name and purpose | Pending (issue #1) |
+| 0001 | Tool name and purpose | Accepted |
 | 0002 | Target frameworks | Pending (issue #1) |
 | 0003 | YAML for manifest, not XAML | Pending (issue #1) |
 | 0004 | Reject `.slnf` for `add file`/`add folder` | Pending (issue #1) |
