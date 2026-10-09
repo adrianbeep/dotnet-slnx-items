@@ -90,7 +90,7 @@ PR body must contain:
 
 - All code, identifiers, comments in **English**.
 - C# language, `net8.0` baseline.
-- Multi-target `net8.0;net9.0;net10.0` where the published artifact benefits from it.
+- Multi-target `net8.0;net10.0` where the published artifact benefits from it.
 - Format with `dotnet format` before opening PR (or rely on `.editorconfig`).
 - Lock public API surfaces with `Microsoft.CodeAnalysis.PublicApiAnalyzers` for libraries.
 
