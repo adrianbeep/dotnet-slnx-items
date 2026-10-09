@@ -395,7 +395,14 @@ public sealed class SolutionItemsService
 
     private static string ResolveRelativeFilePath(string solutionDir, string filePath)
     {
-        string fullPath = Path.GetFullPath(filePath);
+        // Relative paths are interpreted as relative to the solution
+        // directory, not the current working directory. Absolute paths
+        // are resolved against the filesystem and must still land
+        // inside the solution directory.
+        string fullPath = Path.IsPathRooted(filePath)
+            ? Path.GetFullPath(filePath)
+            : Path.GetFullPath(Path.Combine(solutionDir, filePath));
+
         string relative = Path.GetRelativePath(solutionDir, fullPath);
         if (relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)
             || relative == ".."
