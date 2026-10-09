@@ -28,7 +28,7 @@ namespace DotnetSlnxItems.Core
     }
     public sealed class SolutionItemsService
     {
-        public SolutionItemsService(string solutionFilePath);
+        public static System.Threading.Tasks.Task<SolutionItemsService> SolutionItemsService.CreateAsync(string solutionFilePath, System.Threading.CancellationToken ct = default);
         public System.Threading.Tasks.Task SolutionItemsService.AddFilesAsync(System.Collections.Generic.IReadOnlyList<string> filePaths, string? targetFolder = null, System.Threading.CancellationToken ct = default);
         public System.Threading.Tasks.Task SolutionItemsService.AddFolderAsync(string folderPath, System.Threading.CancellationToken ct = default);
         public System.Threading.Tasks.Task SolutionItemsService.RemoveFilesAsync(System.Collections.Generic.IReadOnlyList<string> filePaths, string? targetFolder = null, System.Threading.CancellationToken ct = default);
