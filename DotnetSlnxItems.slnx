@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DotnetSlnxItems.Cli/DotnetSlnxItems.Cli.csproj" />
+    <Project Path="src/DotnetSlnxItems.Core/DotnetSlnxItems.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DotnetSlnxItems.Cli.Tests/DotnetSlnxItems.Cli.Tests.csproj" />
+    <Project Path="tests/DotnetSlnxItems.Core.Tests/DotnetSlnxItems.Core.Tests.csproj" />
+  </Folder>
+</Solution>
