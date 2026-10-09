@@ -1,0 +1,39 @@
+#nullable enable
+namespace DotnetSlnxItems.Core
+{
+    public sealed record SolutionItemInfo(string Path, SolutionItemKind Kind);
+    public string SolutionItemInfo.Path { get; init; }
+    public SolutionItemKind SolutionItemInfo.Kind { get; init; }
+    public enum SolutionItemKind
+    {
+        Folder = 0,
+        File = 1,
+    }
+    public sealed class SolutionItemsException : System.Exception
+    {
+        public SolutionItemsException(SolutionItemsErrorKind kind, string message);
+        public SolutionItemsException(SolutionItemsErrorKind kind, string message, System.Exception innerException);
+        public SolutionItemsErrorKind SolutionItemsException.Kind { get; }
+    }
+    public enum SolutionItemsErrorKind
+    {
+        SolutionFileNotFound = 0,
+        UnsupportedFormat = 1,
+        SlnfNotSupported = 2,
+        AmbiguousSolutionInDirectory = 3,
+        InvalidFolderPath = 4,
+        InvalidFilePath = 5,
+        FolderNotFound = 6,
+        PersistenceError = 7,
+    }
+    public sealed class SolutionItemsService
+    {
+        public SolutionItemsService(string solutionFilePath);
+        public System.Threading.Tasks.Task SolutionItemsService.AddFilesAsync(System.Collections.Generic.IReadOnlyList<string> filePaths, string? targetFolder = null, System.Threading.CancellationToken ct = default);
+        public System.Threading.Tasks.Task SolutionItemsService.AddFolderAsync(string folderPath, System.Threading.CancellationToken ct = default);
+        public System.Threading.Tasks.Task SolutionItemsService.RemoveFilesAsync(System.Collections.Generic.IReadOnlyList<string> filePaths, string? targetFolder = null, System.Threading.CancellationToken ct = default);
+        public System.Threading.Tasks.Task SolutionItemsService.RemoveFolderAsync(string folderPath, System.Threading.CancellationToken ct = default);
+        public System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<SolutionItemInfo>> SolutionItemsService.ListAsync(System.Threading.CancellationToken ct = default);
+        public System.Threading.Tasks.Task SolutionItemsService.SaveAsync(System.Threading.CancellationToken ct = default);
+    }
+}

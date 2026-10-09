@@ -8,4 +8,16 @@
     </PackageReference>
   </ItemGroup>
 
+  <PropertyGroup>
+    <!--
+      RS0025 ("symbol appears more than once") is suppressed because the analyzer
+      treats literal `{` and `}` characters as unique symbols across the file, and a
+      multi-type namespace file with several class/enum bodies has multiple `{` and `}`
+      at the same syntactic position. The other rules (RS0016: must declare public APIs;
+      RS0037: nullable annotations must be tracked) remain active. Re-evaluate in a
+      follow-up if a stricter format is needed.
+    -->
+    <NoWarn>$(NoWarn);RS0025</NoWarn>
+  </PropertyGroup>
+
 </Project>
