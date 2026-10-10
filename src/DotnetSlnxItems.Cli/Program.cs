@@ -57,6 +57,7 @@ internal static class Program
 
         Command add = new("add", "Add Solution Items to the solution.");
         add.Subcommands.Add(AddFileCommand.Create());
+        add.Subcommands.Add(AddFolderCommand.Create());
         root.Subcommands.Add(add);
 
         return await root.Parse(args).InvokeAsync();
