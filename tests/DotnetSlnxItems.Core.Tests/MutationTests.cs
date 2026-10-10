@@ -334,4 +334,128 @@ public class MutationTests
             FixtureHelper.Cleanup(path);
         }
     }
+
+    // ---- Path validation (escape attempts) ----
+
+    [Fact]
+    public async Task AddFilesAsync_RelativePathWithDotDot_ThrowsInvalidFilePath()
+    {
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            var ex = await Assert.ThrowsAsync<SolutionItemsException>(
+                async () => await service.AddFilesAsync(new[] { "../escape.config" }));
+            Assert.Equal(SolutionItemsErrorKind.InvalidFilePath, ex.Kind);
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
+
+    [Fact]
+    public async Task AddFilesAsync_AbsolutePathOutsideSolutionDir_ThrowsInvalidFilePath()
+    {
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            string outside = Path.Combine(Path.GetTempPath(), "outside-" + Guid.NewGuid().ToString("N") + ".config");
+            File.WriteAllText(outside, "x");
+            try
+            {
+                var ex = await Assert.ThrowsAsync<SolutionItemsException>(
+                    async () => await service.AddFilesAsync(new[] { outside }));
+                Assert.Equal(SolutionItemsErrorKind.InvalidFilePath, ex.Kind);
+            }
+            finally
+            {
+                File.Delete(outside);
+            }
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
+
+    [Fact]
+    public async Task AddFilesAsync_ParentDirectoryPath_ThrowsInvalidFilePath()
+    {
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            // The path ".." resolves to the parent of the solution dir.
+            // The relative path from solution dir to that point is "..".
+            var ex = await Assert.ThrowsAsync<SolutionItemsException>(
+                async () => await service.AddFilesAsync(new[] { ".." }));
+            Assert.Equal(SolutionItemsErrorKind.InvalidFilePath, ex.Kind);
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
+
+    [Fact]
+    public async Task RemoveFilesAsync_RelativePathWithDotDot_ThrowsInvalidFilePath()
+    {
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            var ex = await Assert.ThrowsAsync<SolutionItemsException>(
+                async () => await service.RemoveFilesAsync(new[] { "../escape.config" }));
+            Assert.Equal(SolutionItemsErrorKind.InvalidFilePath, ex.Kind);
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
+
+    [Fact]
+    public async Task RemoveFilesAsync_AbsolutePathOutsideSolutionDir_ThrowsInvalidFilePath()
+    {
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            string outside = Path.Combine(Path.GetTempPath(), "outside-" + Guid.NewGuid().ToString("N") + ".config");
+            File.WriteAllText(outside, "x");
+            try
+            {
+                var ex = await Assert.ThrowsAsync<SolutionItemsException>(
+                    async () => await service.RemoveFilesAsync(new[] { outside }));
+                Assert.Equal(SolutionItemsErrorKind.InvalidFilePath, ex.Kind);
+            }
+            finally
+            {
+                File.Delete(outside);
+            }
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
+
+    [Fact]
+    public async Task RemoveFilesAsync_ParentDirectoryPath_ThrowsInvalidFilePath()
+    {
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            var ex = await Assert.ThrowsAsync<SolutionItemsException>(
+                async () => await service.RemoveFilesAsync(new[] { ".." }));
+            Assert.Equal(SolutionItemsErrorKind.InvalidFilePath, ex.Kind);
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
 }
