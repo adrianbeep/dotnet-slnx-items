@@ -1,4 +1,5 @@
 using System.CommandLine;
+
 using DotnetSlnxItems.Cli.Errors;
 using DotnetSlnxItems.Cli.Paths;
 using DotnetSlnxItems.Core;
