@@ -437,7 +437,7 @@ public class AddFileCommandTests : IDisposable
         {
             string source = Path.Combine(sourceDir, name);
             string target = Path.Combine(targetDir, name);
-            File.Copy(source, target);
+            File.Copy(source, target, overwrite: true);
             if (firstTarget.Length == 0)
             {
                 firstTarget = target;

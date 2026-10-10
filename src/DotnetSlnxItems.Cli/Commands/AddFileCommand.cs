@@ -1,4 +1,7 @@
 using System.CommandLine;
+using DotnetSlnxItems.Cli.Errors;
+using DotnetSlnxItems.Cli.Paths;
+using DotnetSlnxItems.Core;
 
 namespace DotnetSlnxItems.Cli.Commands;
 
@@ -11,6 +14,8 @@ namespace DotnetSlnxItems.Cli.Commands;
 /// </summary>
 public static class AddFileCommand
 {
+    private const string NoSolutionInCwdMessage = "No solution file found in current directory";
+
     public static Command Create()
     {
         Command command = new("file", "Add one or more files to the solution's Solution Items folder.");
@@ -34,12 +39,56 @@ public static class AddFileCommand
         };
         command.Options.Add(solutionFolder);
 
-        command.SetAction(static (ParseResult pr) => RunAsync(pr));
+        command.SetAction(parseResult => RunAsync(parseResult, paths, solution, solutionFolder));
         return command;
     }
 
-    private static Task<int> RunAsync(ParseResult parseResult)
+    private static async Task<int> RunAsync(
+        ParseResult parseResult,
+        Argument<string[]> pathsArgument,
+        Option<string?> solutionOption,
+        Option<string?> solutionFolderOption)
     {
-        throw new NotImplementedException();
+        string[] paths = parseResult.GetValue(pathsArgument)!;
+        string? explicitSolution = parseResult.GetValue(solutionOption);
+        string? solutionFolderOptionValue = parseResult.GetValue(solutionFolderOption);
+
+        // Pre-flight: every input file must exist on disk. This is a
+        // CLI-level guarantee; Core accepts missing paths silently.
+        foreach (string path in paths)
+        {
+            if (!File.Exists(path))
+            {
+                Console.Error.WriteLine($"File not found: '{path}'");
+                return 1;
+            }
+        }
+
+        // Resolve target solution. Explicit --solution wins; otherwise
+        // the cwd resolver returns the path, the cwd (when >1), or
+        // null (when 0). In the null case Core never gets called.
+        string? target = explicitSolution ?? SolutionResolver.ResolveFromCwd(Environment.CurrentDirectory);
+        if (target is null)
+        {
+            Console.Error.WriteLine(NoSolutionInCwdMessage);
+            return 2;
+        }
+
+        SolutionItemsService service;
+        try
+        {
+            service = await SolutionItemsService.CreateAsync(target);
+        }
+        catch (SolutionItemsException ex)
+        {
+            (string message, int exitCode) = ErrorMapper.Map(ex);
+            Console.Error.WriteLine(message);
+            return exitCode;
+        }
+
+        // Real partition + AddFilesAsync + SaveAsync land in T8.
+        _ = solutionFolderOptionValue;
+        _ = service;
+        return 0;
     }
 }
