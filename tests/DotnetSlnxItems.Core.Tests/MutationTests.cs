@@ -128,11 +128,18 @@ public class MutationTests
         try
         {
             SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
-            await service.AddFolderAsync("a/b/c");
+            IReadOnlyList<FolderAddResult> results = await service.AddFolderAsync("a/b/c");
             await service.SaveAsync();
 
             SolutionItemsService reopened = await SolutionItemsService.CreateAsync(path);
             IReadOnlyList<SolutionItemInfo> items = await reopened.ListAsync();
+
+            // Per-record dedupe: every ancestor must report Created=true on a fresh solution.
+            Assert.Equal(3, results.Count);
+            Assert.All(results, r => Assert.True(r.Created));
+            Assert.Equal("/a/", results[0].Path);
+            Assert.Equal("/a/b/", results[1].Path);
+            Assert.Equal("/a/b/c/", results[2].Path);
 
             Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/a/b/c/");
             // intermediate folders should also be present (tree walk)
