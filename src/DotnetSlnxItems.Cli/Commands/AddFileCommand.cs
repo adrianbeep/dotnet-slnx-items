@@ -86,9 +86,70 @@ public static class AddFileCommand
             return exitCode;
         }
 
-        // Real partition + AddFilesAsync + SaveAsync land in T8.
-        _ = solutionFolderOptionValue;
-        _ = service;
+        // Partition the input paths into "already present" (silent
+        // no-op) and "to add". Core dedupes by the relative path it
+        // stores; replicating the relative-path computation here lets
+        // the success message name only the genuinely new files.
+        string solutionDir = Path.GetDirectoryName(target) ?? Environment.CurrentDirectory;
+        HashSet<string> existingRelative = new(StringComparer.CurrentCulture);
+        foreach (SolutionItemInfo item in await service.ListAsync())
+        {
+            if (item.Kind == SolutionItemKind.File)
+            {
+                existingRelative.Add(item.Path);
+            }
+        }
+
+        var newRelativePaths = new List<string>();
+        var newInputPaths = new List<string>();
+        foreach (string path in paths)
+        {
+            string relative = ToRelativeFilePath(solutionDir, path);
+            if (!existingRelative.Contains(relative))
+            {
+                newRelativePaths.Add(relative);
+                newInputPaths.Add(path);
+            }
+        }
+
+        if (newInputPaths.Count > 0)
+        {
+            try
+            {
+                await service.AddFilesAsync(newInputPaths, solutionFolderOptionValue);
+                await service.SaveAsync();
+            }
+            catch (SolutionItemsException ex)
+            {
+                (string message, int exitCode) = ErrorMapper.Map(ex);
+                Console.Error.WriteLine(message);
+                return exitCode;
+            }
+
+            foreach (string relative in newRelativePaths)
+            {
+                Console.Out.WriteLine($"Added: {relative}");
+            }
+        }
+
+        Console.Out.WriteLine($"Added {newRelativePaths.Count} file(s).");
         return 0;
+    }
+
+    /// <summary>
+    /// Replicates <c>SolutionItemsService.ResolveRelativeFilePath</c>
+    /// (private to Core) so the CLI can decide which input paths are
+    /// already present before calling <c>AddFilesAsync</c>. Kept in
+    /// sync with Core's implementation; if Core changes its relative
+    /// storage rules, this must change too.
+    /// </summary>
+    private static string ToRelativeFilePath(string solutionDir, string filePath)
+    {
+        string fullPath = Path.IsPathRooted(filePath)
+            ? Path.GetFullPath(filePath)
+            : Path.GetFullPath(Path.Combine(solutionDir, filePath));
+
+        string relative = Path.GetRelativePath(solutionDir, fullPath);
+        return relative.Replace('\\', '/');
     }
 }
