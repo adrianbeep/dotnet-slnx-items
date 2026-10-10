@@ -220,17 +220,19 @@ public sealed class SolutionItemsService
             ? DefaultFolderPath
             : NormalizeFolderPath(targetFolder);
         SolutionFolderModel? folder = _solution.FindFolder(folderPath);
-        if (folder is null)
-        {
-            return Task.CompletedTask;
-        }
 
+        // Validate every path even if the folder does not exist: we
+        // do not want a malformed path to slip through silently just
+        // because the target is missing. If the folder exists, also
+        // remove the file from it.
         string solutionDir = GetSolutionDirectoryOrThrow();
         foreach (string filePath in filePaths)
         {
             ct.ThrowIfCancellationRequested();
             string relativePath = ResolveRelativeFilePath(solutionDir, filePath);
-            if (folder.Files is not null && ContainsFile(folder.Files, relativePath))
+            if (folder is not null
+                && folder.Files is not null
+                && ContainsFile(folder.Files, relativePath))
             {
                 folder.RemoveFile(relativePath);
             }
@@ -395,7 +397,14 @@ public sealed class SolutionItemsService
 
     private static string ResolveRelativeFilePath(string solutionDir, string filePath)
     {
-        string fullPath = Path.GetFullPath(filePath);
+        // Relative paths are interpreted as relative to the solution
+        // directory, not the current working directory. Absolute paths
+        // are resolved against the filesystem and must still land
+        // inside the solution directory.
+        string fullPath = Path.IsPathRooted(filePath)
+            ? Path.GetFullPath(filePath)
+            : Path.GetFullPath(Path.Combine(solutionDir, filePath));
+
         string relative = Path.GetRelativePath(solutionDir, fullPath);
         if (relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)
             || relative == ".."

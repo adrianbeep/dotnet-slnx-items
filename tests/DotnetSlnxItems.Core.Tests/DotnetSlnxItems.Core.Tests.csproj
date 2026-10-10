@@ -3,6 +3,11 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!--
+      Microsoft.NET.Test.Sdk 18.4 generates its own entry point (auto global statements).
+      Disable ours to avoid the CS7022 collision with the Cli project's top-level Program.cs.
+    -->
+    <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +22,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DotnetSlnxItems.Core\DotnetSlnxItems.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Fixtures\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>
