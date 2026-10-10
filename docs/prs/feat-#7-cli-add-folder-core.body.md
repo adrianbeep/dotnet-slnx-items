@@ -1,4 +1,4 @@
-Closes #7
+Closes #38
 
 ## What changed
 
