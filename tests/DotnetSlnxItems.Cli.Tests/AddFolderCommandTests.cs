@@ -191,18 +191,22 @@ public class AddFolderCommandTests : IDisposable
             run.Result.Stderr);
     }
 
-    // ---- Test 8: only-slashes folder name -> Core's InvalidFolderPath ----
+    // ---- Test 8: only-slashes folder name -> CLI pre-flight (starts with /) ----
 
     [Fact]
     public void AddFolder_OnlySlashesName_NonZeroExitAndStderrExplains()
     {
+        // Note: "///" starts with "/", so the CLI pre-flight rejects
+        // it before the service call. Core's "cannot be empty or
+        // contain only slashes" message would only surface if the
+        // pre-flight allowed "/" prefixes — it does not.
         CliRun run = RunInTempDir(
             dir => CopyFixture(dir, "single-project.sln", "single-project.csproj"),
             "add", "folder", "///");
 
         Assert.Equal(6, run.Result.ExitCode);
         Assert.Contains(
-            "Invalid folder name: '///'. Folder names cannot be empty or contain only slashes.",
+            "Invalid folder name: '///'. Folder names cannot contain '..' or be absolute paths.",
             run.Result.Stderr);
     }
 
