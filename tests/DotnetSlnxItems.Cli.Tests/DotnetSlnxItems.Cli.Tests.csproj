@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DotnetSlnxItems.Cli\DotnetSlnxItems.Cli.csproj" />
+    <ProjectReference Include="..\..\src\DotnetSlnxItems.Core\DotnetSlnxItems.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
