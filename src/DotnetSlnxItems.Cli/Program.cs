@@ -19,6 +19,24 @@ internal static class Program
 
         RootCommand root = new("slnx-items — manage Solution Items in .sln and .slnx");
 
+        // Drop System.CommandLine's default --version option so we can
+        // emit the project's own "slnx-items 0.1.0" line instead of
+        // the assembly informational version. AGENTS.md locks the MVP
+        // version to 0.1.0; bumping requires a Semver review bump.
+        Option? autoVersion = null;
+        foreach (Option option in root.Options)
+        {
+            if (option.Name == "--version")
+            {
+                autoVersion = option;
+                break;
+            }
+        }
+        if (autoVersion is not null)
+        {
+            root.Options.Remove(autoVersion);
+        }
+
         Option<bool> versionOption = new("--version", "-v")
         {
             Description = "Print version information and exit.",
