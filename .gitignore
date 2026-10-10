@@ -483,3 +483,4 @@ $RECYCLE.BIN/
 
 # Test results directories
 [Tt]est[Rr]esults/
+.atl/

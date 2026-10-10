@@ -190,4 +190,148 @@ public class MutationTests
             FixtureHelper.Cleanup(path);
         }
     }
+
+    // ---- Defensive / no-op cases ----
+
+    [Fact]
+    public async Task AddFilesAsync_EmptyList_IsNoOp()
+    {
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            await service.AddFilesAsync(Array.Empty<string>());
+            await service.SaveAsync();
+
+            SolutionItemsService reopened = await SolutionItemsService.CreateAsync(path);
+            IReadOnlyList<SolutionItemInfo> items = await reopened.ListAsync();
+
+            // The default Solution Items folder exists (created on save even with no files)
+            // but it must not contain any files.
+            Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.File);
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
+
+    [Fact]
+    public async Task AddFilesAsync_NullList_IsNoOp()
+    {
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            // The service treats null as "nothing to do" rather than throwing.
+            await service.AddFilesAsync(null!);
+            await service.SaveAsync();
+
+            SolutionItemsService reopened = await SolutionItemsService.CreateAsync(path);
+            IReadOnlyList<SolutionItemInfo> items = await reopened.ListAsync();
+
+            Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.File);
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
+
+    [Fact]
+    public async Task RemoveFilesAsync_NonExistentFile_IsNoOp()
+    {
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            // File was never added — remove must be silent.
+            await service.RemoveFilesAsync(new[] { "never-added.config" });
+            await service.SaveAsync();
+
+            SolutionItemsService reopened = await SolutionItemsService.CreateAsync(path);
+            IReadOnlyList<SolutionItemInfo> items = await reopened.ListAsync();
+
+            Assert.DoesNotContain(items, i =>
+                i.Kind == SolutionItemKind.File && i.Path == "never-added.config");
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
+
+    [Fact]
+    public async Task RemoveFolderAsync_NonExistentFolder_IsNoOp()
+    {
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            // Folder was never added — remove must be silent.
+            await service.RemoveFolderAsync("NeverAdded");
+            await service.SaveAsync();
+
+            SolutionItemsService reopened = await SolutionItemsService.CreateAsync(path);
+            IReadOnlyList<SolutionItemInfo> items = await reopened.ListAsync();
+
+            Assert.DoesNotContain(items, i =>
+                i.Kind == SolutionItemKind.Folder && i.Path == "/NeverAdded/");
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
+
+    [Fact]
+    public async Task AddFolderAsync_EmptyPath_ThrowsInvalidFolderPath()
+    {
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            var ex = await Assert.ThrowsAsync<SolutionItemsException>(
+                async () => await service.AddFolderAsync(""));
+            Assert.Equal(SolutionItemsErrorKind.InvalidFolderPath, ex.Kind);
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
+
+    [Fact]
+    public async Task AddFolderAsync_OnlySlashes_ThrowsInvalidFolderPath()
+    {
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            var ex = await Assert.ThrowsAsync<SolutionItemsException>(
+                async () => await service.AddFolderAsync("///"));
+            Assert.Equal(SolutionItemsErrorKind.InvalidFolderPath, ex.Kind);
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
+
+    [Fact]
+    public async Task RemoveFolderAsync_EmptyPath_ThrowsInvalidFolderPath()
+    {
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            var ex = await Assert.ThrowsAsync<SolutionItemsException>(
+                async () => await service.RemoveFolderAsync(""));
+            Assert.Equal(SolutionItemsErrorKind.InvalidFolderPath, ex.Kind);
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
 }
