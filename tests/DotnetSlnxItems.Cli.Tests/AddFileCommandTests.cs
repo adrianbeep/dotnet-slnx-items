@@ -15,6 +15,25 @@ namespace DotnetSlnxItems.Cli.Tests;
 /// and removed on disposal (best effort) — the CLI writes back to
 /// the .sln/.slnx on disk, so the test body still has read access
 /// to the solution while the test runs.
+///
+/// <para>
+/// Exit code convention: every test that runs the CLI to completion
+/// asserts on <c>run.Result.ExitCode</c> via <c>Assert.Equal</c>.
+/// The mapping from CLI exit code to the originating condition lives
+/// in <c>src/DotnetSlnxItems.Cli/Errors/ErrorMapper.cs</c>:
+/// 1 = pre-flight file not found + catch-all
+/// (<c>FolderNotFound</c>, <c>PersistenceError</c>, unhandled),
+/// 2 = "no solution in cwd" (CLI pre-flight) or Core
+/// <c>SolutionFileNotFound</c>,
+/// 3 = Core <c>UnsupportedFormat</c>,
+/// 4 = Core <c>SlnfNotSupported</c>,
+/// 5 = Core <c>AmbiguousSolutionInDirectory</c>,
+/// 6 = Core <c>InvalidFolderPath</c>,
+/// 7 = Core <c>InvalidFilePath</c> (path outside the solution dir).
+/// A future <c>CliExitCodes</c> public class is the planned
+/// single-source-of-truth for these numbers; for now, the table
+/// above is duplicated from <c>ErrorMapper.Map</c>.
+/// </para>
 /// </summary>
 public class AddFileCommandTests : IDisposable
 {
@@ -142,6 +161,7 @@ public class AddFileCommandTests : IDisposable
             },
             "add", "file", "A.md", "B.md");
 
+        Assert.Equal(0, run.Result.ExitCode);
         Assert.Contains("Added: B.md", run.Result.StdOut);
         Assert.DoesNotContain("Added: A.md", run.Result.StdOut);
         Assert.Contains("Added 1 file(s).", run.Result.StdOut);
@@ -353,6 +373,60 @@ public class AddFileCommandTests : IDisposable
 
         Assert.Equal(2, run.Result.ExitCode);
         Assert.Contains("Solution file not found: /does/not/exist/MyApp.sln", run.Result.Stderr);
+    }
+
+    // ---- Test 17: --solution points to a file with an unsupported extension ----
+
+    [Fact]
+    public void AddFile_UnsupportedFormat_NonZeroExitAndStderrExplains()
+    {
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, "single-project.sln", "single-project.csproj");
+                File.WriteAllText(Path.Combine(dir, "README.md"), "x");
+                // A file that exists on disk but is not a recognized solution
+                // format. CreateAsync's ValidateExtension throws UnsupportedFormat.
+                File.WriteAllText(Path.Combine(dir, "not-a-solution.txt"), "this is not a solution");
+            },
+            "add", "file", "README.md", "--solution", "not-a-solution.txt");
+
+        Assert.Equal(3, run.Result.ExitCode);
+        Assert.Contains("Unsupported solution file format", run.Result.Stderr);
+    }
+
+    // ---- Test 18: mixed already + new on a multi-project solution ----
+
+    [Fact]
+    public void AddFile_MultipleFilesMixedAlreadyAndNew_WithMultiProject_AddsOnlyNew()
+    {
+        CliRun run = RunInTempDir(
+            async dir =>
+            {
+                string sln = CopyFixture(dir, "multi-project.sln", "first.csproj", "second.csproj");
+                File.WriteAllText(Path.Combine(dir, "A.md"), "x");
+                File.WriteAllText(Path.Combine(dir, "B.md"), "x");
+
+                // Pre-list A.md in the Solution Items folder via Core so the
+                // CLI's partition in RunAsync has to ignore it. Multi-project
+                // fixture exercises that ListAsync enumerates correctly when
+                // there are multiple Project entries in the .sln.
+                SolutionItemsService service = await SolutionItemsService.CreateAsync(sln);
+                await service.AddFilesAsync(new[] { "A.md" });
+                await service.SaveAsync();
+            },
+            "add", "file", "A.md", "B.md");
+
+        Assert.Equal(0, run.Result.ExitCode);
+        Assert.Contains("Added: B.md", run.Result.StdOut);
+        Assert.DoesNotContain("Added: A.md", run.Result.StdOut);
+        Assert.Contains("Added 1 file(s).", run.Result.StdOut);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        Assert.Contains(items, i =>
+            i.Kind == SolutionItemKind.File && i.Path == "A.md");
+        Assert.Contains(items, i =>
+            i.Kind == SolutionItemKind.File && i.Path == "B.md");
     }
 
     // ---- Helpers ----
