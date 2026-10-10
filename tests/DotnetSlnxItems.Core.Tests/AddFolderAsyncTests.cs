@@ -62,24 +62,33 @@ public class AddFolderAsyncTests
     [Fact]
     public async Task AddFolderAsync_NestedPath_MixedAncestors_ReturnsMixedCreated()
     {
+        // The spec's "only /a/b/ already exists, not /a/" premise is
+        // not reachable through the public API: the persistence library's
+        // AddFolder auto-creates every missing ancestor in one shot, so
+        // once /a/b/ exists /a/ exists too. To exercise the per-ancestor
+        // dedupe walk we instead extend a deeper pre-existing tree at
+        // a new sibling leaf, which still produces a mixed result.
         string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
         try
         {
             SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
-            // Pre-create only /a/b/ so /a/ is new and /a/b/c/ is new.
-            await service.AddFolderAsync("a/b");
+            // Pre-create /a/b/c/d/ -- persistence library also creates
+            // /a/, /a/b/, /a/b/c/ as ancestors.
+            await service.AddFolderAsync("a/b/c/d");
             await service.SaveAsync();
 
             SolutionItemsService reopened = await SolutionItemsService.CreateAsync(path);
-            IReadOnlyList<FolderAddResult> results = await reopened.AddFolderAsync("a/b/c");
+            IReadOnlyList<FolderAddResult> results = await reopened.AddFolderAsync("a/b/c/e");
 
-            Assert.Equal(3, results.Count);
-            Assert.True(results[0].Created);
+            Assert.Equal(4, results.Count);
+            Assert.False(results[0].Created);
             Assert.Equal("/a/", results[0].Path);
             Assert.False(results[1].Created);
             Assert.Equal("/a/b/", results[1].Path);
-            Assert.True(results[2].Created);
+            Assert.False(results[2].Created);
             Assert.Equal("/a/b/c/", results[2].Path);
+            Assert.True(results[3].Created);
+            Assert.Equal("/a/b/c/e/", results[3].Path);
         }
         finally
         {

@@ -169,23 +169,57 @@ public sealed class SolutionItemsService
     }
 
     /// <summary>
-    /// Creates a folder. Nested paths like <c>a/b/c</c> create
-    /// the intermediate virtual folders automatically (delegated
-    /// to the persistence library).
+    /// Creates a folder and walks every ancestor of the input path,
+    /// returning one <see cref="FolderAddResult"/> per ancestor in
+    /// root-to-leaf order. The <see cref="FolderAddResult.Created"/>
+    /// flag is <c>true</c> for a folder that the persistence library
+    /// created for the first time, or <c>false</c> for an ancestor
+    /// that already existed (idempotent no-op). Nested paths like
+    /// <c>a/b/c</c> walk <c>/a/</c>, <c>/a/b/</c>, and
+    /// <c>/a/b/c/</c> in order; re-running returns all three with
+    /// <c>Created == false</c>.
     /// </summary>
     /// <param name="folderPath">
     /// The folder path, normalized to <c>/Foo/Bar/</c>.
     /// </param>
     /// <param name="ct">Cancellation token.</param>
+    /// <returns>
+    /// One <see cref="FolderAddResult"/> per ancestor touched,
+    /// ordered root-to-leaf.
+    /// </returns>
     /// <exception cref="SolutionItemsException">
     /// Thrown with <see cref="SolutionItemsErrorKind.InvalidFolderPath"/>
     /// if the folder name is empty or only slashes.
     /// </exception>
-    public Task AddFolderAsync(string folderPath, CancellationToken ct = default)
+    public async Task<IReadOnlyList<FolderAddResult>> AddFolderAsync(
+        string folderPath, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         string normalized = NormalizeFolderPath(folderPath);
-        _solution.AddFolder(normalized);
-        return Task.CompletedTask;
+        string[] segments = normalized.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        List<string> ancestors = new(segments.Length);
+        for (int i = 1; i <= segments.Length; i++)
+        {
+            ancestors.Add("/" + string.Join('/', segments.Take(i)) + "/");
+        }
+
+        List<FolderAddResult> results = new(ancestors.Count);
+        foreach (string ancestor in ancestors)
+        {
+            ct.ThrowIfCancellationRequested();
+            SolutionFolderModel? existing = _solution.FindFolder(ancestor);
+            if (existing is not null)
+            {
+                results.Add(new FolderAddResult(ancestor, Created: false));
+            }
+            else
+            {
+                _solution.AddFolder(ancestor);
+                results.Add(new FolderAddResult(ancestor, Created: true));
+            }
+        }
+        return results;
     }
 
     /// <summary>
