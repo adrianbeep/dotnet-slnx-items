@@ -17,4 +17,8 @@
     <ProjectReference Include="..\DotnetSlnxItems.Core\DotnetSlnxItems.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
 </Project>

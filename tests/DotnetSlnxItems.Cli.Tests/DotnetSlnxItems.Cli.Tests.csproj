@@ -17,6 +17,16 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DotnetSlnxItems.Cli\DotnetSlnxItems.Cli.csproj" />
+    <ProjectReference Include="..\..\src\DotnetSlnxItems.Core\DotnetSlnxItems.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Fixtures\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="xunit.runner.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>
