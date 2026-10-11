@@ -106,7 +106,8 @@ public class ListCommandTests : IDisposable
             "list");
 
         Assert.Equal(0, run.Result.ExitCode);
-        Assert.Contains("/Build/", run.Result.StdOut);
+        string[] lines = run.Result.StdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(new[] { "/Build/" }, lines);
     }
 
     // ---- Test 4: one folder with one file ----
@@ -127,8 +128,8 @@ public class ListCommandTests : IDisposable
             "list");
 
         Assert.Equal(0, run.Result.ExitCode);
-        Assert.Contains("/Build/", run.Result.StdOut);
-        Assert.Contains("  Directory.Build.props", run.Result.StdOut);
+        string[] lines = run.Result.StdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(new[] { "/Build/", "  Directory.Build.props" }, lines);
     }
 
     // ---- Test 5: multiple folders and files ----
@@ -154,10 +155,8 @@ public class ListCommandTests : IDisposable
             "list");
 
         Assert.Equal(0, run.Result.ExitCode);
-        Assert.Contains("/Build/", run.Result.StdOut);
-        Assert.Contains("  Directory.Build.props", run.Result.StdOut);
-        Assert.Contains("/Solution Items/", run.Result.StdOut);
-        Assert.Contains("  Notes.md", run.Result.StdOut);
+        string[] lines = run.Result.StdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(new[] { "/Build/", "  Directory.Build.props", "/Solution Items/", "  Notes.md" }, lines);
     }
 
     // ---- Test 5b: two top-level folders — regression for indent leak ----
@@ -216,9 +215,8 @@ public class ListCommandTests : IDisposable
             "list");
 
         Assert.Equal(0, run.Result.ExitCode);
-        Assert.Contains("/docs/", run.Result.StdOut);
-        Assert.Contains("/docs/infra/", run.Result.StdOut);
-        Assert.Contains("    foo.md", run.Result.StdOut);
+        string[] lines = run.Result.StdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(new[] { "/docs/", "  /docs/infra/", "    foo.md" }, lines);
     }
 
     // ---- Test 7: --folder filters to just files ----
