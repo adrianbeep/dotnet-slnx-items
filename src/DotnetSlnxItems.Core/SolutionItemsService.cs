@@ -295,7 +295,24 @@ public sealed class SolutionItemsService
     public Task<IReadOnlyList<FolderRemoveResult>> RemoveFolderAsync(
         string folderPath, CancellationToken ct = default)
     {
-        return Task.FromResult<IReadOnlyList<FolderRemoveResult>>(Array.Empty<FolderRemoveResult>());
+        ct.ThrowIfCancellationRequested();
+        string normalized = NormalizeFolderPath(folderPath);
+        SolutionFolderModel? folder = _solution.FindFolder(normalized);
+        if (folder is null)
+        {
+            return Task.FromResult<IReadOnlyList<FolderRemoveResult>>(Array.Empty<FolderRemoveResult>());
+        }
+
+        List<FolderRemoveResult> records = new() { new(normalized, Cascaded: false) };
+        foreach (SolutionFolderModel child in _solution.SolutionFolders
+            .Where(f => f.Path.StartsWith(normalized, StringComparison.Ordinal)
+                     && f.Path != normalized)
+            .OrderBy(f => f.Path, StringComparer.Ordinal))
+        {
+            records.Add(new FolderRemoveResult(child.Path, Cascaded: true));
+        }
+        _solution.RemoveFolder(folder);
+        return Task.FromResult<IReadOnlyList<FolderRemoveResult>>(records);
     }
 
     /// <summary>
