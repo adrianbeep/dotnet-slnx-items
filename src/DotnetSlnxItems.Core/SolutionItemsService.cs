@@ -276,22 +276,43 @@ public sealed class SolutionItemsService
     }
 
     /// <summary>
-    /// Removes a folder and all files inside it. Removing a folder
-    /// that does not exist is a silent no-op.
+    /// Removes a folder and walks every descendant of the input
+    /// path, returning one <see cref="FolderRemoveResult"/> per
+    /// folder removed (one for the top-level, plus one per
+    /// descendant). The <see cref="FolderRemoveResult.Cascaded"/>
+    /// flag is <c>false</c> for the top-level entry and <c>true</c>
+    /// for every descendant. Pre-absent folders return an empty
+    /// list rather than throwing.
     /// </summary>
     /// <param name="folderPath">
     /// The folder path, normalized to <c>/Foo/Bar/</c>.
     /// </param>
     /// <param name="ct">Cancellation token.</param>
-    public Task RemoveFolderAsync(string folderPath, CancellationToken ct = default)
+    /// <returns>
+    /// One <see cref="FolderRemoveResult"/> per folder removed.
+    /// Empty when the folder was not in the solution.
+    /// </returns>
+    public Task<IReadOnlyList<FolderRemoveResult>> RemoveFolderAsync(
+        string folderPath, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         string normalized = NormalizeFolderPath(folderPath);
         SolutionFolderModel? folder = _solution.FindFolder(normalized);
-        if (folder is not null)
+        if (folder is null)
         {
-            _solution.RemoveFolder(folder);
+            return Task.FromResult<IReadOnlyList<FolderRemoveResult>>(Array.Empty<FolderRemoveResult>());
         }
-        return Task.CompletedTask;
+
+        List<FolderRemoveResult> records = new() { new(normalized, Cascaded: false) };
+        foreach (SolutionFolderModel child in _solution.SolutionFolders
+            .Where(f => f.Path.StartsWith(normalized, StringComparison.Ordinal)
+                     && f.Path != normalized)
+            .OrderBy(f => f.Path, StringComparer.Ordinal))
+        {
+            records.Add(new FolderRemoveResult(child.Path, Cascaded: true));
+        }
+        _solution.RemoveFolder(folder);
+        return Task.FromResult<IReadOnlyList<FolderRemoveResult>>(records);
     }
 
     /// <summary>
