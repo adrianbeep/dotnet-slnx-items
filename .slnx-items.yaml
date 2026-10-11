@@ -1,0 +1,34 @@
+# .slnx-items.yaml
+#
+# Declares folders and files that should appear in the solution.
+# This file is consumed by `slnx-items sync` and is described in full
+# at docs/design/manifest-schema.md.
+#
+# Format rules:
+#   - Top-level keys are folder names (use / for nesting).
+#   - Values are lists of file paths, relative to this file.
+#   - The conventional default folder is "Solution Items" (quoted
+#     because it contains a space; this is required YAML 1.2 syntax).
+#   - `sync` is additive only: it creates missing folders and adds
+#     missing files, but does not remove anything from the solution.
+#     There is no --prune flag in v0.1.0.
+
+# The conventional default folder for things Visual Studio shows at
+# the top of Solution Explorer.
+"Solution Items":
+  - .editorconfig
+  - .gitignore
+  - README.md
+
+# Custom top-level folder for build configuration shared by every
+# project in the solution.
+Build:
+  - Directory.Build.props
+  - Directory.Build.targets
+  - Directory.Packages.props
+
+# Nested folder using `/` as the separator. `sync` creates both
+# `/docs/` and `/docs/infrastructure/` if neither exists.
+docs/infrastructure:
+  - setup.md
+  - README.md
