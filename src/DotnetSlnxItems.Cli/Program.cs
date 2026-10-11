@@ -60,6 +60,10 @@ internal static class Program
         add.Subcommands.Add(AddFolderCommand.Create());
         root.Subcommands.Add(add);
 
+        Command remove = new("remove", "Remove files or folders from the solution.");
+        remove.Subcommands.Add(RemoveFileCommand.Create());
+        root.Subcommands.Add(remove);
+
         return await root.Parse(args).InvokeAsync();
     }
 }
