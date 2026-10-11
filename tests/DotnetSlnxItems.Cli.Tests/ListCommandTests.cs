@@ -160,6 +160,41 @@ public class ListCommandTests : IDisposable
         Assert.Contains("  Notes.md", run.Result.StdOut);
     }
 
+    // ---- Test 5b: two top-level folders — regression for indent leak ----
+    //
+    // The previous algorithm tracked `depth` as a counter updated
+    // AFTER each Folder print, so a second top-level folder
+    // (depth 1) inherited the previous folder's depth (also 1)
+    // and got indented by 2 spaces. Test 5 above used
+    // `Assert.Contains` on substrings, which let the bug pass
+    // silently because the spurious-indent line still contains the
+    // expected substring `/Build/`. This test asserts full line
+    // equality so the regression is caught.
+
+    [Fact]
+    public void List_TwoTopLevelFolders_BothAtColumnZero()
+    {
+        CliRun run = RunInTempDir(
+            async dir =>
+            {
+                string sln = CopyFixture(dir, "single-project.sln", "single-project.csproj");
+                File.WriteAllText(Path.Combine(dir, "A.md"), "x");
+                File.WriteAllText(Path.Combine(dir, "B.md"), "x");
+
+                SolutionItemsService service = await SolutionItemsService.CreateAsync(sln);
+                await service.AddFolderAsync("A");
+                await service.AddFolderAsync("B");
+                await service.AddFilesAsync(new[] { "A.md" }, "A");
+                await service.AddFilesAsync(new[] { "B.md" }, "B");
+                await service.SaveAsync();
+            },
+            "list");
+
+        Assert.Equal(0, run.Result.ExitCode);
+        string[] lines = run.Result.StdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(new[] { "/A/", "  A.md", "/B/", "  B.md" }, lines);
+    }
+
     // ---- Test 6: nested folders with correct indentation ----
 
     [Fact]

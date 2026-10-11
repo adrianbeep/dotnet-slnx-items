@@ -37,12 +37,17 @@ namespace DotnetSlnxItems.Cli.Commands;
 /// </para>
 /// <para>
 /// This is a read-only command: it never calls
-/// <see cref="SolutionItemsService.SaveAsync"/>. The folder-header
-/// lines are indented by <c>currentFolderDepth * 2</c> spaces, the
-/// same formula applied to files; the depth tracker is updated from
-/// each Folder record's <c>Path.Count(c =&gt; c == '/') - 1</c>
-/// AFTER the folder is printed so the folder's own line lands at
-/// the correct indentation for its level.
+/// <see cref="SolutionItemsService.SaveAsync"/>. The indent for a
+/// Folder record is computed from its own
+/// <c>Path.Count(c =&gt; c == '/') - 1</c> — top-level folders
+/// (depth 1) get zero indent, nested folders (depth 2+) get
+/// <c>(depth - 1) * 2</c> spaces. The same depth value is stored as
+/// <c>parentFolderDepth</c> so any files following the folder get
+/// <c>parentFolderDepth * 2</c> spaces of indent. Computing the
+/// folder's own indent from its own path (rather than from a shared
+/// tracker that updates AFTER print) is what keeps a second
+/// top-level folder from inheriting the previous folder's
+/// indentation.
 /// </para>
 /// </summary>
 public static class ListCommand
@@ -193,18 +198,25 @@ public static class ListCommand
             return exitCode;
         }
 
-        int depth = 0;
+        // Each Folder's own indent is computed from its own path so
+        // a new top-level folder (depth 1) lands at column 0
+        // regardless of the previous folder. parentFolderDepth
+        // tracks the most recent Folder so files below it get the
+        // right indent.
+        int parentFolderDepth = 0;
         foreach (SolutionItemInfo item in allItems)
         {
-            string indent = new string(' ', depth * 2);
             if (item.Kind == SolutionItemKind.Folder)
             {
-                Console.Out.WriteLine($"{indent}{item.Path}");
-                depth = item.Path.Count(c => c == '/') - 1;
+                int folderDepth = item.Path.Count(c => c == '/') - 1;
+                string folderIndent = new string(' ', (folderDepth - 1) * 2);
+                Console.Out.WriteLine($"{folderIndent}{item.Path}");
+                parentFolderDepth = folderDepth;
             }
             else
             {
-                Console.Out.WriteLine($"{indent}{item.Path}");
+                string fileIndent = new string(' ', parentFolderDepth * 2);
+                Console.Out.WriteLine($"{fileIndent}{item.Path}");
             }
         }
 
