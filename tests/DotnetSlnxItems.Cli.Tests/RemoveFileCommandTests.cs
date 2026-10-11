@@ -166,7 +166,8 @@ public class RemoveFileCommandTests : IDisposable
 
                 SolutionItemsService service = await SolutionItemsService.CreateAsync(sln);
                 // README.md lives in /Build/; NOTES.md stays in /Solution Items/.
-                await service.AddFilesAsync(new[] { "Build/README.md", "NOTES.md" });
+                await service.AddFilesAsync(new[] { "README.md" }, "Build");
+                await service.AddFilesAsync(new[] { "NOTES.md" });
                 await service.SaveAsync();
             },
             "remove", "file", "README.md", "--solution-folder", "Build");
@@ -177,7 +178,7 @@ public class RemoveFileCommandTests : IDisposable
 
         IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
         Assert.DoesNotContain(items, i =>
-            i.Kind == SolutionItemKind.File && i.Path == "Build/README.md");
+            i.Kind == SolutionItemKind.File && i.Path == "README.md");
         Assert.Contains(items, i =>
             i.Kind == SolutionItemKind.File && i.Path == "NOTES.md");
     }
