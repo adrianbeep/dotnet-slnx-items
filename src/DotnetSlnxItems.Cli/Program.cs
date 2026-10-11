@@ -65,6 +65,8 @@ internal static class Program
         remove.Subcommands.Add(RemoveFolderCommand.Create());
         root.Subcommands.Add(remove);
 
+        root.Subcommands.Add(ListCommand.Create());
+
         return await root.Parse(args).InvokeAsync();
     }
 }
