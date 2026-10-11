@@ -1,0 +1,49 @@
+name: build + test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DOTNET_NOLOGO: 'true'
+      DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install the .NET SDKs the project actually targets:
+      #   - net8.0 (Core + tests, baseline)
+      #   - net10.0 (CLI's second target framework)
+      # Cache is enabled here so NuGet's global-packages folder is
+      # warm across runs. Subsequent setup-dotnet steps do not need
+      # to re-cache — the global-packages folder is shared.
+      - name: Setup .NET SDKs
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      - name: Restore
+        run: dotnet restore DotnetSlnxItems.slnx
+
+      - name: Build
+        run: dotnet build DotnetSlnxItems.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test DotnetSlnxItems.slnx --configuration Release --no-build --no-restore
