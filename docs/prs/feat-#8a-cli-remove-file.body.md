@@ -1,5 +1,4 @@
 Closes #42
-Refs #8
 
 ## What changed
 
@@ -46,4 +45,4 @@ Sub-task A of parent issue #8: ships `slnx-items remove file <paths...>` as the 
 5. **No `.slnx` parity test for `--solution-folder`.** Test 5 is `.sln`-only. Mirrors the `add file` test 7 precedent (which is also `.sln`-only for the folder option) — flagged for follow-up parity sweep in #8b, not blocking for #8a.
 6. **No `Co-Authored-By:` line.** Conventional commits only: commit 1 `test(cli): add RED remove file command scenarios`; commit 2 `feat(cli): wire remove file subcommand to RemoveFilesAsync`; commit 3 `chore(cli): apply dotnet format whitespace`. English-only commit bodies, no `chore:` was strictly needed (the dotnet format diff was small but real).
 7. **PublicApiAnalyzers exempt.** The CLI is exempt from PublicApiAnalyzers; this PR touches only CLI files, so the Core-only analyzer does not apply. No `PublicAPI.Unshipped.txt` edit.
-8. **Closes #42** (the CLI sub-issue of issue #8). Does **NOT** close #8 — the parent issue tracks the two-PR split (#8a this PR + #8b / #43 folder) and stays open until both sub-issues merge; GitHub's sub-issues feature may auto-close it after both PRs land, and the maintainer reopens as needed.
+8. **Closes #42 only.** The parent #8 (CLI: remove file <paths...> / remove folder <name>) tracks the two-PR split (#8a this PR + #8b / #43 folder) and stays open until both sub-issues merge. The sub-issue data-model link (set via `addSubIssue` when #42 was created) is sufficient for the board visualization; the PR body does not need to reference #8 — sub-issue PRs in this repo follow that convention (see PRs #21/#22/#32/#33 which close sub-issues of #1 and #2 without referencing the parent).
