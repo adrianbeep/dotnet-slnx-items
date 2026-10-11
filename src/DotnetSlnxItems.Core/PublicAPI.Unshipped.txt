@@ -7,6 +7,9 @@ namespace DotnetSlnxItems.Core
     public sealed record FolderAddResult(string Path, bool Created);
     public string FolderAddResult.Path { get; init; }
     public bool FolderAddResult.Created { get; init; }
+    public sealed record FolderRemoveResult(string Path, bool Cascaded);
+    public string FolderRemoveResult.Path { get; init; }
+    public bool FolderRemoveResult.Cascaded { get; init; }
     public enum SolutionItemKind
     {
         Folder = 0,
@@ -35,7 +38,7 @@ namespace DotnetSlnxItems.Core
         public System.Threading.Tasks.Task SolutionItemsService.AddFilesAsync(System.Collections.Generic.IReadOnlyList<string> filePaths, string? targetFolder = null, System.Threading.CancellationToken ct = default);
         public System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<FolderAddResult>> SolutionItemsService.AddFolderAsync(string folderPath, System.Threading.CancellationToken ct = default);
         public System.Threading.Tasks.Task SolutionItemsService.RemoveFilesAsync(System.Collections.Generic.IReadOnlyList<string> filePaths, string? targetFolder = null, System.Threading.CancellationToken ct = default);
-        public System.Threading.Tasks.Task SolutionItemsService.RemoveFolderAsync(string folderPath, System.Threading.CancellationToken ct = default);
+        public System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<FolderRemoveResult>> SolutionItemsService.RemoveFolderAsync(string folderPath, System.Threading.CancellationToken ct = default);
         public System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<SolutionItemInfo>> SolutionItemsService.ListAsync(System.Threading.CancellationToken ct = default);
         public System.Threading.Tasks.Task SolutionItemsService.SaveAsync(System.Threading.CancellationToken ct = default);
     }
