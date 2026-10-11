@@ -62,6 +62,7 @@ internal static class Program
 
         Command remove = new("remove", "Remove files or folders from the solution.");
         remove.Subcommands.Add(RemoveFileCommand.Create());
+        remove.Subcommands.Add(RemoveFolderCommand.Create());
         root.Subcommands.Add(remove);
 
         return await root.Parse(args).InvokeAsync();
