@@ -105,7 +105,7 @@ public static class AddFileCommand
         var newInputPaths = new List<string>();
         foreach (string path in paths)
         {
-            string relative = ToRelativeFilePath(solutionDir, path);
+            string relative = RelativePathResolver.ToRelativeFilePath(solutionDir, path);
             if (!existingRelative.Contains(relative))
             {
                 newRelativePaths.Add(relative);
@@ -135,22 +135,5 @@ public static class AddFileCommand
 
         Console.Out.WriteLine($"Added {newRelativePaths.Count} file(s).");
         return 0;
-    }
-
-    /// <summary>
-    /// Replicates <c>SolutionItemsService.ResolveRelativeFilePath</c>
-    /// (private to Core) so the CLI can decide which input paths are
-    /// already present before calling <c>AddFilesAsync</c>. Kept in
-    /// sync with Core's implementation; if Core changes its relative
-    /// storage rules, this must change too.
-    /// </summary>
-    private static string ToRelativeFilePath(string solutionDir, string filePath)
-    {
-        string fullPath = Path.IsPathRooted(filePath)
-            ? Path.GetFullPath(filePath)
-            : Path.GetFullPath(Path.Combine(solutionDir, filePath));
-
-        string relative = Path.GetRelativePath(solutionDir, fullPath);
-        return relative.Replace('\\', '/');
     }
 }

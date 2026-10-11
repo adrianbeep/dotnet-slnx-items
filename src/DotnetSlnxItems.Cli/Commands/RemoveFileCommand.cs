@@ -103,7 +103,7 @@ public static class RemoveFileCommand
         // once.
         foreach (string path in paths)
         {
-            string relative = ToRelativeFilePath(solutionDir, path);
+            string relative = RelativePathResolver.ToRelativeFilePath(solutionDir, path);
             if (existingRelative.Contains(relative))
             {
                 Console.Out.WriteLine($"File '{relative}' removed from the solution.");
@@ -132,25 +132,5 @@ public static class RemoveFileCommand
         }
 
         return 0;
-    }
-
-    /// <summary>
-    /// Replicates <c>SolutionItemsService.ResolveRelativeFilePath</c>
-    /// (private to Core) so the CLI can decide which input paths are
-    /// already present before calling <c>RemoveFilesAsync</c>. Kept
-    /// in sync with Core's implementation; if Core changes its
-    /// relative storage rules, this must change too. Duplicated from
-    /// <see cref="AddFileCommand"/>; extract to
-    /// <c>Paths/RelativePathResolver.cs</c> when a third command
-    /// needs a copy.
-    /// </summary>
-    private static string ToRelativeFilePath(string solutionDir, string filePath)
-    {
-        string fullPath = Path.IsPathRooted(filePath)
-            ? Path.GetFullPath(filePath)
-            : Path.GetFullPath(Path.Combine(solutionDir, filePath));
-
-        string relative = Path.GetRelativePath(solutionDir, fullPath);
-        return relative.Replace('\\', '/');
     }
 }
