@@ -156,11 +156,14 @@ public static class ListCommand
 
                     // File record: only print if it lives under the
                     // targeted folder (the immediately preceding
-                    // Folder record is its parent).
+                    // Folder record is its parent). Output is flat
+                    // — --folder filters to a single folder, so tree
+                    // indentation adds noise for piping to xargs/grep
+                    // and matches the issue spec's "one file per line,
+                    // no folder header" contract.
                     if (folderFound && currentFolderPath == normalized)
                     {
-                        string indent = new string(' ', currentFolderDepth * 2);
-                        Console.Out.WriteLine($"{indent}{item.Path}");
+                        Console.Out.WriteLine(item.Path);
                     }
                 }
 
