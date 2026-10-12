@@ -71,40 +71,18 @@ public class RemoveFolderCommandTests : IDisposable
         Assert.Contains("--solution", run.Result.StdOut);
     }
 
-    // ---- Test 2: top-level folder on .sln ----
+    // ---- Test 2 + 3: top-level folder (cross-format parity, issue #14 GAP 1) ----
 
-    [Fact]
-    public void RemoveFolder_TopLevel_AppendsToSln()
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void RemoveFolder_TopLevel_Disappears(string fixture)
     {
         CliRun run = RunInTempDir(
             async dir =>
             {
-                string sln = CopyFixture(dir, "single-project.sln", "single-project.csproj");
+                string sln = CopyFixture(dir, fixture, "single-project.csproj");
                 SolutionItemsService service = await SolutionItemsService.CreateAsync(sln);
-                await service.AddFolderAsync("Build");
-                await service.SaveAsync();
-            },
-            "remove", "folder", "Build");
-
-        Assert.Equal(0, run.Result.ExitCode);
-        Assert.Contains("Folder '/Build/' removed from the solution.", run.Result.StdOut);
-        Assert.DoesNotContain("was not in the solution", run.Result.StdOut);
-
-        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
-        Assert.DoesNotContain(items, i =>
-            i.Kind == SolutionItemKind.Folder && i.Path == "/Build/");
-    }
-
-    // ---- Test 3: top-level folder on .slnx ----
-
-    [Fact]
-    public void RemoveFolder_TopLevel_AppendsToSlnx()
-    {
-        CliRun run = RunInTempDir(
-            async dir =>
-            {
-                string slnx = CopyFixture(dir, "single-project.slnx", "single-project.csproj");
-                SolutionItemsService service = await SolutionItemsService.CreateAsync(slnx);
                 await service.AddFolderAsync("Build");
                 await service.SaveAsync();
             },
