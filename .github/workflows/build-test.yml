@@ -9,14 +9,13 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ matrix.os }}
-  cancel-in-progress: true
-
 jobs:
   build-test:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
+    concurrency:
+      group: ci-${{ github.workflow }}-${{ github.ref }}-${{ matrix.os }}
+      cancel-in-progress: true
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
