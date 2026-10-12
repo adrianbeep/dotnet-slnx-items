@@ -70,44 +70,20 @@ public class RemoveFileCommandTests : IDisposable
         Assert.Contains("--solution-folder", run.Result.StdOut);
     }
 
-    // ---- Test 2: remove a single file (.sln) ----
+    // ---- Test 2 + 3: remove a single file (cross-format parity, issue #14 GAP 1) ----
 
-    [Fact]
-    public void RemoveFile_ExistingFileInSln_FileDisappears()
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void RemoveFile_ExistingFile_FileDisappears(string fixture)
     {
         CliRun run = RunInTempDir(
             async dir =>
             {
-                string sln = CopyFixture(dir, "single-project.sln", "single-project.csproj");
+                string sln = CopyFixture(dir, fixture, "single-project.csproj");
                 File.WriteAllText(Path.Combine(dir, "README.md"), "x");
 
                 SolutionItemsService service = await SolutionItemsService.CreateAsync(sln);
-                await service.AddFilesAsync(new[] { "README.md" });
-                await service.SaveAsync();
-            },
-            "remove", "file", "README.md");
-
-        Assert.Equal(0, run.Result.ExitCode);
-        Assert.Contains("File 'README.md' removed from the solution.", run.Result.StdOut);
-        Assert.DoesNotContain("was not in the solution", run.Result.StdOut);
-
-        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
-        Assert.DoesNotContain(items, i =>
-            i.Kind == SolutionItemKind.File && i.Path == "README.md");
-    }
-
-    // ---- Test 3: remove a single file (.slnx) ----
-
-    [Fact]
-    public void RemoveFile_ExistingFileInSlnx_FileDisappears()
-    {
-        CliRun run = RunInTempDir(
-            async dir =>
-            {
-                string slnx = CopyFixture(dir, "single-project.slnx", "single-project.csproj");
-                File.WriteAllText(Path.Combine(dir, "README.md"), "x");
-
-                SolutionItemsService service = await SolutionItemsService.CreateAsync(slnx);
                 await service.AddFilesAsync(new[] { "README.md" });
                 await service.SaveAsync();
             },
@@ -239,6 +215,74 @@ public class RemoveFileCommandTests : IDisposable
 
         Assert.Equal(2, run.Result.ExitCode);
         Assert.Contains("No solution file found in current directory", run.Result.Stderr);
+    }
+
+    // ---- Test 9: --solution-folder missing (GAP 4 cross-format) ----
+
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void RemoveFile_SolutionFolderMissing_ExitsNonZeroAndStderrExplains(string fixture)
+    {
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, fixture, "single-project.csproj");
+                File.WriteAllText(Path.Combine(dir, "README.md"), "x");
+            },
+            "remove", "file", "README.md", "--solution-folder", "Build");
+
+        Assert.Equal(1, run.Result.ExitCode);
+        Assert.Contains("was not found", run.Result.Stderr);
+        Assert.Contains("/Build/", run.Result.Stderr);
+        Assert.DoesNotContain("Exception:", run.Result.Stderr);
+        Assert.DoesNotContain("at ", run.Result.Stderr);
+    }
+
+    // ---- Test 10: round-trip on sloppy-project.sln (GAP 2) ----
+
+    [Fact]
+    public void RemoveFile_RoundTrip_OnSloppyProjectSln_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, "sloppy-project.sln", "first-cs.csproj", "first-fs.fsproj");
+                File.WriteAllText(Path.Combine(dir, "readme-in-misc.md"), "x");
+            },
+            "remove", "file", "readme-in-misc.md", "--solution-folder", "Misc");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // The targeted file is gone.
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        // The /Misc/ folder and the other file must survive.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+    }
+
+    // ---- Test 11: round-trip on sloppy-project.slnx (GAP 2) ----
+
+    [Fact]
+    public void RemoveFile_RoundTrip_OnSloppyProjectSlnx_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, "sloppy-project.slnx", "first-cs.csproj", "first-fs.fsproj");
+                File.WriteAllText(Path.Combine(dir, "readme-in-misc.md"), "x");
+            },
+            "remove", "file", "readme-in-misc.md", "--solution-folder", "Misc");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // The targeted file is gone.
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        // The /Misc/ folder and the other file must survive.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
     }
 
     // ---- Helpers ----

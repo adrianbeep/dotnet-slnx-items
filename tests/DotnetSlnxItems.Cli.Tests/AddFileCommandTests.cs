@@ -73,37 +73,17 @@ public class AddFileCommandTests : IDisposable
         Assert.Contains("--solution-folder", run.Result.StdOut);
     }
 
-    // ---- Test 2: add a single file (.sln) ----
+    // ---- Test 2 + 3: add a single file (cross-format parity, issue #14 GAP 1) ----
 
-    [Fact]
-    public void AddFile_SingleFile_AppendsToSolution()
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void AddFile_SingleFile_AppendsToSolution(string fixture)
     {
         CliRun run = RunInTempDir(
             dir =>
             {
-                CopyFixture(dir, "single-project.sln", "single-project.csproj");
-                File.WriteAllText(Path.Combine(dir, "README.md"), "x");
-            },
-            "add", "file", "README.md");
-
-        Assert.Equal(0, run.Result.ExitCode);
-        Assert.Contains("Added: README.md", run.Result.StdOut);
-        Assert.Contains("Added 1 file(s).", run.Result.StdOut);
-
-        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
-        Assert.Contains(items, i =>
-            i.Kind == SolutionItemKind.File && i.Path == "README.md");
-    }
-
-    // ---- Test 3: add a single file (.slnx) ----
-
-    [Fact]
-    public void AddFile_SingleFile_AppendsToSlnx()
-    {
-        CliRun run = RunInTempDir(
-            dir =>
-            {
-                CopyFixture(dir, "single-project.slnx", "single-project.csproj");
+                CopyFixture(dir, fixture, "single-project.csproj");
                 File.WriteAllText(Path.Combine(dir, "README.md"), "x");
             },
             "add", "file", "README.md");
@@ -195,10 +175,18 @@ public class AddFileCommandTests : IDisposable
     public void AddFile_WithSolutionFolder_PlacesFileInNamedFolder()
     {
         CliRun run = RunInTempDir(
-            dir =>
+            async dir =>
             {
-                CopyFixture(dir, "single-project.sln", "single-project.csproj");
+                string sln = CopyFixture(dir, "single-project.sln", "single-project.csproj");
                 File.WriteAllText(Path.Combine(dir, "README.md"), "x");
+
+                // Pre-create /Build/ so the explicit --solution-folder
+                // contract (issue #14 GAP 4) is satisfied: an explicit
+                // folder name must already exist in the solution; the
+                // CLI no longer auto-creates it.
+                SolutionItemsService service = await SolutionItemsService.CreateAsync(sln);
+                await service.AddFolderAsync("Build");
+                await service.SaveAsync();
             },
             "add", "file", "README.md", "--solution-folder", "Build");
 
@@ -427,6 +415,76 @@ public class AddFileCommandTests : IDisposable
             i.Kind == SolutionItemKind.File && i.Path == "A.md");
         Assert.Contains(items, i =>
             i.Kind == SolutionItemKind.File && i.Path == "B.md");
+    }
+
+    // ---- Test 19: --solution-folder missing (GAP 4 cross-format) ----
+
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void AddFile_SolutionFolderMissing_ExitsNonZeroAndStderrExplains(string fixture)
+    {
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, fixture, "single-project.csproj");
+                File.WriteAllText(Path.Combine(dir, "README.md"), "x");
+            },
+            "add", "file", "README.md", "--solution-folder", "Build");
+
+        Assert.Equal(1, run.Result.ExitCode);
+        Assert.Contains("was not found", run.Result.Stderr);
+        Assert.Contains("/Build/", run.Result.Stderr);
+        Assert.DoesNotContain("Exception:", run.Result.Stderr);
+        Assert.DoesNotContain("at ", run.Result.Stderr);
+    }
+
+    // ---- Test 20: round-trip on sloppy-project.sln (GAP 2) ----
+
+    [Fact]
+    public void AddFile_RoundTrip_OnSloppyProjectSln_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, "sloppy-project.sln", "first-cs.csproj", "first-fs.fsproj");
+                File.WriteAllText(Path.Combine(dir, "newfile.md"), "x");
+            },
+            "add", "file", "newfile.md");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // Pre-existing entities must all still be present.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+        // The new file must also be present.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "newfile.md");
+    }
+
+    // ---- Test 21: round-trip on sloppy-project.slnx (GAP 2) ----
+
+    [Fact]
+    public void AddFile_RoundTrip_OnSloppyProjectSlnx_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, "sloppy-project.slnx", "first-cs.csproj", "first-fs.fsproj");
+                File.WriteAllText(Path.Combine(dir, "newfile.md"), "x");
+            },
+            "add", "file", "newfile.md");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // Pre-existing entities must all still be present.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+        // The new file must also be present.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "newfile.md");
     }
 
     // ---- Helpers ----

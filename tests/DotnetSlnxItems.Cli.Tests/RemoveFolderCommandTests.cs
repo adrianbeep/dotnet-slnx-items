@@ -71,40 +71,18 @@ public class RemoveFolderCommandTests : IDisposable
         Assert.Contains("--solution", run.Result.StdOut);
     }
 
-    // ---- Test 2: top-level folder on .sln ----
+    // ---- Test 2 + 3: top-level folder (cross-format parity, issue #14 GAP 1) ----
 
-    [Fact]
-    public void RemoveFolder_TopLevel_AppendsToSln()
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void RemoveFolder_TopLevel_Disappears(string fixture)
     {
         CliRun run = RunInTempDir(
             async dir =>
             {
-                string sln = CopyFixture(dir, "single-project.sln", "single-project.csproj");
+                string sln = CopyFixture(dir, fixture, "single-project.csproj");
                 SolutionItemsService service = await SolutionItemsService.CreateAsync(sln);
-                await service.AddFolderAsync("Build");
-                await service.SaveAsync();
-            },
-            "remove", "folder", "Build");
-
-        Assert.Equal(0, run.Result.ExitCode);
-        Assert.Contains("Folder '/Build/' removed from the solution.", run.Result.StdOut);
-        Assert.DoesNotContain("was not in the solution", run.Result.StdOut);
-
-        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
-        Assert.DoesNotContain(items, i =>
-            i.Kind == SolutionItemKind.Folder && i.Path == "/Build/");
-    }
-
-    // ---- Test 3: top-level folder on .slnx ----
-
-    [Fact]
-    public void RemoveFolder_TopLevel_AppendsToSlnx()
-    {
-        CliRun run = RunInTempDir(
-            async dir =>
-            {
-                string slnx = CopyFixture(dir, "single-project.slnx", "single-project.csproj");
-                SolutionItemsService service = await SolutionItemsService.CreateAsync(slnx);
                 await service.AddFolderAsync("Build");
                 await service.SaveAsync();
             },
@@ -229,6 +207,45 @@ public class RemoveFolderCommandTests : IDisposable
 
         Assert.Equal(2, run.Result.ExitCode);
         Assert.Contains("No solution file found in current directory", run.Result.Stderr);
+    }
+
+    // ---- Test 9: round-trip on sloppy-project.sln (GAP 2) ----
+
+    [Fact]
+    public void RemoveFolder_RoundTrip_OnSloppyProjectSln_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir => CopyFixture(dir, "sloppy-project.sln", "first-cs.csproj", "first-fs.fsproj"),
+            "remove", "folder", "Misc");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // /Misc/ and its files are gone.
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+        // No Solution Items folder should exist either; the project entities
+        // survive (we can't enumerate those via ListAsync, but no exception
+        // is the key signal that the project model was not disturbed).
+    }
+
+    // ---- Test 10: round-trip on sloppy-project.slnx (GAP 2) ----
+
+    [Fact]
+    public void RemoveFolder_RoundTrip_OnSloppyProjectSlnx_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir => CopyFixture(dir, "sloppy-project.slnx", "first-cs.csproj", "first-fs.fsproj"),
+            "remove", "folder", "Misc");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // /Misc/ and its files are gone.
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
     }
 
     // ---- Helpers ----

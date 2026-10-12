@@ -77,28 +77,32 @@ public class ListCommandTests : IDisposable
         Assert.Contains("--folder", run.Result.StdOut);
     }
 
-    // ---- Test 2: empty solution, no items ----
+    // ---- Test 2: empty solution, no items (cross-format parity, issue #14 GAP 1) ----
 
-    [Fact]
-    public void List_EmptySolution_EmptyStdoutExitZero()
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void List_EmptySolution_EmptyStdoutExitZero(string fixture)
     {
         CliRun run = RunInTempDir(
-            dir => CopyFixture(dir, "single-project.sln", "single-project.csproj"),
+            dir => CopyFixture(dir, fixture, "single-project.csproj"),
             "list");
 
         Assert.Equal(0, run.Result.ExitCode);
         Assert.Equal(string.Empty, run.Result.StdOut);
     }
 
-    // ---- Test 3: one empty folder ----
+    // ---- Test 3: one empty folder (cross-format parity, issue #14 GAP 1) ----
 
-    [Fact]
-    public void List_OneEmptyFolder_PrintsOneFolderHeaderLine()
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void List_OneEmptyFolder_PrintsOneFolderHeaderLine(string fixture)
     {
         CliRun run = RunInTempDir(
             async dir =>
             {
-                string sln = CopyFixture(dir, "single-project.sln", "single-project.csproj");
+                string sln = CopyFixture(dir, fixture, "single-project.csproj");
                 SolutionItemsService service = await SolutionItemsService.CreateAsync(sln);
                 await service.AddFolderAsync("Build");
                 await service.SaveAsync();
@@ -110,15 +114,17 @@ public class ListCommandTests : IDisposable
         Assert.Equal(new[] { "/Build/" }, lines);
     }
 
-    // ---- Test 4: one folder with one file ----
+    // ---- Test 4: one folder with one file (cross-format parity, issue #14 GAP 1) ----
 
-    [Fact]
-    public void List_OneFolderOneFile_FolderHeaderPlusIndentedFile()
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void List_OneFolderOneFile_FolderHeaderPlusIndentedFile(string fixture)
     {
         CliRun run = RunInTempDir(
             async dir =>
             {
-                string sln = CopyFixture(dir, "single-project.sln", "single-project.csproj");
+                string sln = CopyFixture(dir, fixture, "single-project.csproj");
                 File.WriteAllText(Path.Combine(dir, "Directory.Build.props"), "<Project />");
 
                 SolutionItemsService service = await SolutionItemsService.CreateAsync(sln);

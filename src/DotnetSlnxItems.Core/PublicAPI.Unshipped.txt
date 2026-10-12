@@ -40,9 +40,9 @@ namespace DotnetSlnxItems.Core
     public sealed class SolutionItemsService
     {
         public static System.Threading.Tasks.Task<SolutionItemsService> SolutionItemsService.CreateAsync(string solutionFilePath, System.Threading.CancellationToken ct = default);
-        public System.Threading.Tasks.Task SolutionItemsService.AddFilesAsync(System.Collections.Generic.IReadOnlyList<string> filePaths, string? targetFolder = null, System.Threading.CancellationToken ct = default);
+        public System.Threading.Tasks.Task SolutionItemsService.AddFilesAsync(System.Collections.Generic.IReadOnlyList<string> filePaths, string? targetFolder = null, bool requireExistingFolder = false, System.Threading.CancellationToken ct = default);
         public System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<FolderAddResult>> SolutionItemsService.AddFolderAsync(string folderPath, System.Threading.CancellationToken ct = default);
-        public System.Threading.Tasks.Task SolutionItemsService.RemoveFilesAsync(System.Collections.Generic.IReadOnlyList<string> filePaths, string? targetFolder = null, System.Threading.CancellationToken ct = default);
+        public System.Threading.Tasks.Task SolutionItemsService.RemoveFilesAsync(System.Collections.Generic.IReadOnlyList<string> filePaths, string? targetFolder = null, bool requireExistingFolder = false, System.Threading.CancellationToken ct = default);
         public System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<FolderRemoveResult>> SolutionItemsService.RemoveFolderAsync(string folderPath, System.Threading.CancellationToken ct = default);
         public System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<SolutionItemInfo>> SolutionItemsService.ListAsync(System.Threading.CancellationToken ct = default);
         public System.Threading.Tasks.Task SolutionItemsService.SaveAsync(System.Threading.CancellationToken ct = default);

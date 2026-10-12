@@ -117,7 +117,17 @@ public static class AddFileCommand
         {
             try
             {
-                await service.AddFilesAsync(newInputPaths, solutionFolderOptionValue);
+                // When the user explicitly named --solution-folder,
+                // the folder must already exist in the solution;
+                // Core throws FolderNotFound → ErrorMapper routes to
+                // exit 1 with the "was not found" message. When
+                // --solution-folder is absent we keep the default
+                // auto-create so the default /Solution Items/ flow
+                // still works on a fresh solution.
+                await service.AddFilesAsync(
+                    newInputPaths,
+                    solutionFolderOptionValue,
+                    requireExistingFolder: solutionFolderOptionValue is not null);
                 await service.SaveAsync();
             }
             catch (SolutionItemsException ex)

@@ -449,6 +449,105 @@ public class MutationTests
         }
     }
 
+    // ---- requireExistingFolder (issue #14, GAP 4) ----
+
+    [Fact]
+    public async Task AddFilesAsync_RequireExistingFolder_MissingFolder_ThrowsFolderNotFound()
+    {
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            var ex = await Assert.ThrowsAsync<SolutionItemsException>(
+                async () => await service.AddFilesAsync(
+                    new[] { "build.props" },
+                    targetFolder: "Build",
+                    requireExistingFolder: true));
+            Assert.Equal(SolutionItemsErrorKind.FolderNotFound, ex.Kind);
+            Assert.Contains("'/Build/'", ex.Message);
+            Assert.Contains("was not found", ex.Message);
+
+            // Solution must not have been mutated.
+            SolutionItemsService reopened = await SolutionItemsService.CreateAsync(path);
+            IReadOnlyList<SolutionItemInfo> items = await reopened.ListAsync();
+            Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Build/");
+            Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.File && i.Path == "build.props");
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
+
+    [Fact]
+    public async Task RemoveFilesAsync_RequireExistingFolder_MissingFolder_ThrowsFolderNotFound()
+    {
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            var ex = await Assert.ThrowsAsync<SolutionItemsException>(
+                async () => await service.RemoveFilesAsync(
+                    new[] { "missing.config" },
+                    targetFolder: "Build",
+                    requireExistingFolder: true));
+            Assert.Equal(SolutionItemsErrorKind.FolderNotFound, ex.Kind);
+            Assert.Contains("'/Build/'", ex.Message);
+            Assert.Contains("was not found", ex.Message);
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
+
+    [Fact]
+    public async Task AddFilesAsync_DefaultRequireExistingFolderFalse_SilentlyCreatesMissingFolder()
+    {
+        // MVP behavior preservation: the default `false` keeps the
+        // silent auto-create that the default /Solution Items/ flow
+        // and `sync` depend on.
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            await service.AddFilesAsync(new[] { "build.props" }, targetFolder: "Build");
+            await service.SaveAsync();
+
+            SolutionItemsService reopened = await SolutionItemsService.CreateAsync(path);
+            IReadOnlyList<SolutionItemInfo> items = await reopened.ListAsync();
+            Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Build/");
+            Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "build.props");
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
+
+    [Fact]
+    public async Task RemoveFilesAsync_DefaultRequireExistingFolderFalse_SilentlyNoOpsOnMissingFolder()
+    {
+        // MVP behavior preservation: the default `false` keeps the
+        // silent no-op so idempotent remove calls don't error on
+        // absent folders.
+        string path = FixtureHelper.CopyFixtureTo("RealWorldFixture.slnx", "RealWorldFixture.Project.csproj");
+        try
+        {
+            SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            await service.RemoveFilesAsync(new[] { "never.config" }, targetFolder: "Build");
+            await service.SaveAsync();
+
+            SolutionItemsService reopened = await SolutionItemsService.CreateAsync(path);
+            IReadOnlyList<SolutionItemInfo> items = await reopened.ListAsync();
+            Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Build/");
+        }
+        finally
+        {
+            FixtureHelper.Cleanup(path);
+        }
+    }
+
     [Fact]
     public async Task RemoveFilesAsync_ParentDirectoryPath_ThrowsInvalidFilePath()
     {
@@ -456,6 +555,8 @@ public class MutationTests
         try
         {
             SolutionItemsService service = await SolutionItemsService.CreateAsync(path);
+            // The path ".." resolves to the parent of the solution dir.
+            // The relative path from solution dir to that point is "..".
             var ex = await Assert.ThrowsAsync<SolutionItemsException>(
                 async () => await service.RemoveFilesAsync(new[] { ".." }));
             Assert.Equal(SolutionItemsErrorKind.InvalidFilePath, ex.Kind);

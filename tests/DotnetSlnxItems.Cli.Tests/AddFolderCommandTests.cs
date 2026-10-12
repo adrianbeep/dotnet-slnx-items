@@ -72,31 +72,15 @@ public class AddFolderCommandTests : IDisposable
         Assert.Contains("--solution", run.Result.StdOut);
     }
 
-    // ---- Test 2: top-level folder on .sln ----
+    // ---- Test 2 + 3: top-level folder (cross-format parity, issue #14 GAP 1) ----
 
-    [Fact]
-    public void AddFolder_TopLevel_AppendsToSln()
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void AddFolder_TopLevel_AppendsToSolution(string fixture)
     {
         CliRun run = RunInTempDir(
-            dir => CopyFixture(dir, "single-project.sln", "single-project.csproj"),
-            "add", "folder", "Build");
-
-        Assert.Equal(0, run.Result.ExitCode);
-        Assert.Contains("Folder '/Build/' added to the solution.", run.Result.StdOut);
-        Assert.Contains("Created 1 folder(s).", run.Result.StdOut);
-
-        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
-        Assert.Contains(items, i =>
-            i.Kind == SolutionItemKind.Folder && i.Path == "/Build/");
-    }
-
-    // ---- Test 3: top-level folder on .slnx ----
-
-    [Fact]
-    public void AddFolder_TopLevel_AppendsToSlnx()
-    {
-        CliRun run = RunInTempDir(
-            dir => CopyFixture(dir, "single-project.slnx", "single-project.csproj"),
+            dir => CopyFixture(dir, fixture, "single-project.csproj"),
             "add", "folder", "Build");
 
         Assert.Equal(0, run.Result.ExitCode);
@@ -311,6 +295,46 @@ public class AddFolderCommandTests : IDisposable
 
         Assert.Equal(2, run.Result.ExitCode);
         Assert.Contains("Solution file not found: /does/not/exist/MyApp.sln", run.Result.Stderr);
+    }
+
+    // ---- Test 16: round-trip on sloppy-project.sln (GAP 2) ----
+
+    [Fact]
+    public void AddFolder_RoundTrip_OnSloppyProjectSln_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir => CopyFixture(dir, "sloppy-project.sln", "first-cs.csproj", "first-fs.fsproj"),
+            "add", "folder", "NewFolder");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // Pre-existing /Misc/ folder and its 2 files must survive.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+        // The new folder must be present.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/NewFolder/");
+    }
+
+    // ---- Test 17: round-trip on sloppy-project.slnx (GAP 2) ----
+
+    [Fact]
+    public void AddFolder_RoundTrip_OnSloppyProjectSlnx_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir => CopyFixture(dir, "sloppy-project.slnx", "first-cs.csproj", "first-fs.fsproj"),
+            "add", "folder", "NewFolder");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // Pre-existing /Misc/ folder and its 2 files must survive.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+        // The new folder must be present.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/NewFolder/");
     }
 
     // ---- Helpers ----

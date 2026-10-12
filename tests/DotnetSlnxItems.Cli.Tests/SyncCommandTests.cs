@@ -135,15 +135,17 @@ public class SyncCommandTests : IDisposable
             i.Kind == SolutionItemKind.File && i.Path == "Directory.Build.props");
     }
 
-    // ---- Test 5: multiple folders and files ----
+    // ---- Test 5: multiple folders and files (cross-format parity, issue #14 GAP 1) ----
 
-    [Fact]
-    public void Sync_MultipleFoldersAndFiles_EachCreatedAndAddedSummaryCorrect()
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void Sync_MultipleFoldersAndFiles_EachCreatedAndAddedSummaryCorrect(string fixture)
     {
         CliRun run = RunInTempDir(
             dir =>
             {
-                CopyFixture(dir, "single-project.sln", "single-project.csproj");
+                CopyFixture(dir, fixture, "single-project.csproj");
                 // slnx-items-multi.yaml has 6 file references across
                 // 5 unique files (README.md appears in two folders).
                 // Pre-create every file so the pre-flight check passes.
@@ -378,6 +380,62 @@ public class SyncCommandTests : IDisposable
 
         Assert.Equal(4, run.Result.ExitCode);
         Assert.Contains(".slnf", run.Result.Stderr);
+    }
+
+    // ---- Test 16: round-trip on sloppy-project.sln (GAP 2) ----
+
+    [Fact]
+    public void Sync_RoundTrip_OnSloppyProjectSln_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, "sloppy-project.sln", "first-cs.csproj", "first-fs.fsproj");
+                File.WriteAllText(Path.Combine(dir, "Directory.Build.props"), "<Project />");
+                File.WriteAllText(
+                    Path.Combine(dir, ".slnx-items.yaml"),
+                    "Build:\n  - Directory.Build.props\n");
+            },
+            "sync");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // Pre-existing /Misc/ folder and its 2 files must survive.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+        // The synced folder + file must also be present.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Build/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "Directory.Build.props");
+    }
+
+    // ---- Test 17: round-trip on sloppy-project.slnx (GAP 2) ----
+
+    [Fact]
+    public void Sync_RoundTrip_OnSloppyProjectSlnx_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, "sloppy-project.slnx", "first-cs.csproj", "first-fs.fsproj");
+                File.WriteAllText(Path.Combine(dir, "Directory.Build.props"), "<Project />");
+                File.WriteAllText(
+                    Path.Combine(dir, ".slnx-items.yaml"),
+                    "Build:\n  - Directory.Build.props\n");
+            },
+            "sync");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // Pre-existing /Misc/ folder and its 2 files must survive.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+        // The synced folder + file must also be present.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Build/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "Directory.Build.props");
     }
 
     // ---- Helpers ----
