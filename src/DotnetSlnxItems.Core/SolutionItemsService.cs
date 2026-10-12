@@ -132,9 +132,23 @@ public sealed class SolutionItemsService
     /// The destination folder, normalized to <c>/Foo/Bar/</c>. If
     /// <c>null</c>, the default <c>/Solution Items/</c> is used.
     /// </param>
+    /// <param name="requireExistingFolder">
+    /// When <c>true</c>, the method throws
+    /// <see cref="SolutionItemsException"/> with
+    /// <see cref="SolutionItemsErrorKind.FolderNotFound"/> if the
+    /// target folder does not already exist in the solution. When
+    /// <c>false</c> (the default), the method silently auto-creates
+    /// the folder if it is missing — the MVP behavior for the
+    /// default <c>/Solution Items/</c> case. The CLI passes
+    /// <c>true</c> only when the user explicitly named the folder
+    /// via <c>--solution-folder</c>.
+    /// </param>
     /// <param name="ct">Cancellation token.</param>
     /// <exception cref="SolutionItemsException">
-    /// Thrown with <see cref="SolutionItemsErrorKind.InvalidFolderPath"/>
+    /// Thrown with <see cref="SolutionItemsErrorKind.FolderNotFound"/>
+    /// when <paramref name="requireExistingFolder"/> is <c>true</c>
+    /// and the target folder does not exist; with
+    /// <see cref="SolutionItemsErrorKind.InvalidFolderPath"/>
     /// if the folder name is empty or only slashes; with
     /// <see cref="SolutionItemsErrorKind.InvalidFilePath"/> if
     /// any file path resolves outside the solution directory.
@@ -142,6 +156,7 @@ public sealed class SolutionItemsService
     public Task AddFilesAsync(
         IReadOnlyList<string> filePaths,
         string? targetFolder = null,
+        bool requireExistingFolder = false,
         CancellationToken ct = default)
     {
         if (filePaths is null || filePaths.Count == 0)
@@ -152,7 +167,14 @@ public sealed class SolutionItemsService
         string folderPath = targetFolder is null
             ? DefaultFolderPath
             : NormalizeFolderPath(targetFolder);
-        SolutionFolderModel folder = _solution.FindFolder(folderPath) ?? _solution.AddFolder(folderPath);
+        SolutionFolderModel? existing = _solution.FindFolder(folderPath);
+        if (requireExistingFolder && existing is null)
+        {
+            throw new SolutionItemsException(
+                SolutionItemsErrorKind.FolderNotFound,
+                $"Folder '{folderPath}' was not found in the solution.");
+        }
+        SolutionFolderModel folder = existing ?? _solution.AddFolder(folderPath);
         string solutionDir = GetSolutionDirectoryOrThrow();
 
         foreach (string filePath in filePaths)
