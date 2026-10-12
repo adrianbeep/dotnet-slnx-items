@@ -97,6 +97,7 @@ $ slnx-items list
 | [`remove file <paths...>`](#slnx-items-remove-file-paths) | Remove one or more files (idempotent). |
 | [`remove folder <name>`](#slnx-items-remove-folder-name) | Remove a virtual folder (cascades to children). |
 | [`list`](#slnx-items-list) | List all folders and their files. |
+| [`sync`](#slnx-items-sync) | Apply a `.slnx-items.yaml` manifest to the solution (additive only). |
 
 `slnx-items --help` and `slnx-items <command> --help` are the canonical full reference for every option.
 
@@ -206,6 +207,56 @@ Directory.Build.props
 Directory.Build.targets
 ```
 
+### `slnx-items sync`
+
+Apply a `.slnx-items.yaml` manifest to the solution. `sync` is the declarative counterpart to the `add` / `remove` commands: it reads the manifest, computes the diff against the current solution, and applies only the missing folders and files. `sync` is **additive only** — it never removes items from the solution, and there is no `--prune` flag in v0.1.0.
+
+```bash
+slnx-items sync [options]
+```
+
+**Options**
+
+- `-m, --manifest <path>` — Path to a `.slnx-items.yaml` manifest. Defaults to `.slnx-items.yaml` in the current working directory.
+- `-s, --solution <path>` — Path to a `.sln` or `.slnx` file, or a directory containing exactly one. Same resolution rules as the other commands.
+- `--dry-run` — Print the changes that would be applied without modifying the solution.
+
+**Manifest format**
+
+A YAML file mapping folder names to lists of file paths. Folder names use `/` for nesting. **File paths are relative to the manifest's directory** (the repo root by default), not to the folder name — a path under a nested folder must repeat the prefix. See [`docs/design/manifest-schema.md`](./docs/design/manifest-schema.md) for the full schema.
+
+```yaml
+"Solution Items":
+  - .editorconfig
+  - .gitignore
+  - README.md
+
+Build:
+  - Directory.Build.props
+  - Directory.Build.targets
+
+# Nested folder; the file paths repeat the `docs/infrastructure/`
+# prefix because the path is anchored at the manifest directory.
+docs/infrastructure:
+  - docs/infrastructure/setup.md
+  - docs/infrastructure/README.md
+```
+
+**Examples**
+
+```bash
+# Apply the default manifest in the current directory.
+slnx-items sync
+
+# Preview the changes without writing to the solution.
+slnx-items sync --dry-run
+
+# Apply a non-default manifest.
+slnx-items sync --manifest .slnx-items.api.yaml
+```
+
+`sync` is idempotent: running it twice produces no changes the second time. The full schema (safe-YAML subset, folder name rules, error cases) is documented in [`docs/design/manifest-schema.md`](./docs/design/manifest-schema.md).
+
 ## Exit codes
 
 All commands share the same exit-code table:
@@ -214,21 +265,21 @@ All commands share the same exit-code table:
 |---|---|
 | 0 | Success (including idempotent no-op cases). |
 | 1 | Catch-all for unexpected errors (`PersistenceError`, unhandled exceptions). |
-| 2 | No solution file in cwd, or the explicit `--solution` path does not exist. |
-| 3 | Unsupported solution file format (neither `.sln` nor `.slnx`). |
-| 4 | `.slnf` (solution filter) file rejected. |
-| 5 | Multiple solution files in cwd and no explicit `--solution` to disambiguate. |
-| 6 | Invalid folder name (empty, whitespace, only slashes, contains `..`, or absolute path). |
-| 7 | File path is outside the solution directory. |
+| 2 | No solution file in cwd. |
+| 3 | Explicit `--solution` path does not exist, or the `.slnx-items.yaml` manifest does not exist (sync). |
+| 4 | Unsupported solution file format (neither `.sln` nor `.slnx`). |
+| 5 | `.slnf` (solution filter) file rejected. |
+| 6 | Multiple solution files in the directory given to `--solution` and no explicit file to disambiguate. |
+| 7 | Invalid folder name (empty, whitespace, only slashes, contains `..`, or absolute path). |
+| 8 | File path is outside the solution directory. |
 
 Run `slnx-items <command> --help` for the option-level help of each command.
 
 ## Limitations
 
-- **`.slnf` (solution filter) files are not supported.** Solution filters are read-only projections of a parent solution; this tool does not write to them. Run the command against the parent `.sln` or `.slnx` instead. Exit code 4 is returned for `.slnf` paths.
+- **`.slnf` (solution filter) files are not supported.** Solution filters are read-only projections of a parent solution; this tool does not write to them. Run the command against the parent `.sln` or `.slnx` instead. Exit code 5 is returned for `.slnf` paths.
 - **No shell-style globbing.** Paths are interpreted literally. Use your shell's expansion (`*.props`) to pass multiple files.
-- **No `--prune` or full-sync removal.** The `remove` commands target one file or folder at a time. There is no manifest-driven diff that prunes the solution to a desired state.
-- **No manifest / `sync` command in v0.1.0.** A future `slnx-items sync` (driven by a `.slnx-items.yaml` manifest) is on the roadmap but is not part of MVP v0.1.0.
+- **No `--prune` or full-sync removal.** `slnx-items sync` is additive only: it creates missing folders and adds missing files, but does not remove items already in the solution. A `--prune` flag that prunes to the manifest's declared state is post-MVP. The `remove` commands still target one file or folder at a time.
 - **Pre-1.0 API surface.** The CLI and command shape may change between minor versions before 1.0. Pin your install (`dotnet tool install -g dotnet-slnx-items --version 0.1.0`) if you need reproducible builds.
 - **Windows reserved names not validated.** The persistence library does not block folder names like `CON`, `PRN`, or `AUX`. Avoid these.
 

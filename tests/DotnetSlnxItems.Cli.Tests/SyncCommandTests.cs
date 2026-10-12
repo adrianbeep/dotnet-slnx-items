@@ -394,7 +394,72 @@ public class SyncCommandTests : IDisposable
         Assert.Contains(".slnf", run.Result.Stderr);
     }
 
-    // ---- Test 16: round-trip on sloppy-project.sln (GAP 2) ----
+    // ---- Test 16: manifest path is anchored at the manifest directory,
+    // not at the declared folder key. Locks the contract documented in
+    // docs/design/manifest-schema.md so a future refactor that flips
+    // the resolution to "relative to the folder key" cannot land
+    // without a test failure. Issue #66. ----
+
+    [Fact]
+    public void Sync_NestedFolder_ResolvesFileRelativeToManifestDirectory()
+    {
+        // Manifest declares `docs/infrastructure` as the folder and
+        // `setup.md` as the file (path NOT prefixed with the folder).
+        // The file lives on disk at `<manifestDir>/setup.md` (root).
+        // The CLI must resolve the path against the manifest directory,
+        // not the folder key, so this passes.
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, "single-project.sln", "single-project.csproj");
+                File.WriteAllText(Path.Combine(dir, "setup.md"), "x");
+                File.WriteAllText(
+                    Path.Combine(dir, ".slnx-items.yaml"),
+                    "docs/infrastructure:\n  - setup.md\n");
+            },
+            "sync");
+
+        Assert.Equal(0, run.Result.ExitCode);
+        Assert.Contains("Created folder '/docs/infrastructure/'.", run.Result.StdOut);
+        Assert.Contains("Added file 'docs/infrastructure/setup.md'.", run.Result.StdOut);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/docs/infrastructure/");
+        // File stored with path relative to the solution directory
+        // (the repo root in the default case) — `setup.md`, not
+        // `docs/infrastructure/setup.md`. The folder name is the
+        // solution-side grouping, not part of the stored path.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "setup.md");
+    }
+
+    [Fact]
+    public void Sync_NestedFolder_PathRepeatingPrefixIsHonored()
+    {
+        // The same file under a nested folder, where the manifest
+        // repeats the directory prefix (the form documented in the
+        // example in docs/design/manifest-schema.md). The CLI must
+        // accept this without complaint and the file must be added
+        // under the declared folder.
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, "single-project.sln", "single-project.csproj");
+                Directory.CreateDirectory(Path.Combine(dir, "docs", "infrastructure"));
+                File.WriteAllText(Path.Combine(dir, "docs", "infrastructure", "setup.md"), "x");
+                File.WriteAllText(
+                    Path.Combine(dir, ".slnx-items.yaml"),
+                    "docs/infrastructure:\n  - docs/infrastructure/setup.md\n");
+            },
+            "sync");
+
+        Assert.Equal(0, run.Result.ExitCode);
+        Assert.Contains("Added file 'docs/infrastructure/docs/infrastructure/setup.md'.", run.Result.StdOut);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "docs/infrastructure/setup.md");
+    }
+
+    // ---- Test 17: round-trip on sloppy-project.sln (GAP 2) ----
 
     [Fact]
     public void Sync_RoundTrip_OnSloppyProjectSln_PreservesUnrelatedContent()

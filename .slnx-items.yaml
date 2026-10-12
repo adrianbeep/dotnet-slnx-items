@@ -6,12 +6,20 @@
 #
 # Format rules:
 #   - Top-level keys are folder names (use / for nesting).
-#   - Values are lists of file paths, relative to this file.
+#   - Values are lists of file paths, relative to THIS file's directory
+#     (the repo root by default). The path is NOT relative to the
+#     folder key — a path under a nested folder must repeat the prefix.
 #   - The conventional default folder is "Solution Items" (quoted
 #     because it contains a space; this is required YAML 1.2 syntax).
 #   - `sync` is additive only: it creates missing folders and adds
 #     missing files, but does not remove anything from the solution.
 #     There is no --prune flag in v0.1.0.
+#
+# This manifest is the reference example. It is not necessarily
+# runnable against the current repo (the files listed under
+# `docs/infrastructure/` do not exist in this repository). It is
+# kept as a documentation artifact and as a copy-pasteable starting
+# point for users.
 
 # The conventional default folder for things Visual Studio shows at
 # the top of Solution Explorer.
@@ -28,7 +36,9 @@ Build:
   - Directory.Packages.props
 
 # Nested folder using `/` as the separator. `sync` creates both
-# `/docs/` and `/docs/infrastructure/` if neither exists.
+# `/docs/` and `/docs/infrastructure/` if neither exists. The file
+# paths repeat the `docs/infrastructure/` prefix because the path
+# is anchored at the manifest directory, not at the folder key.
 docs/infrastructure:
-  - setup.md
-  - README.md
+  - docs/infrastructure/setup.md
+  - docs/infrastructure/README.md
