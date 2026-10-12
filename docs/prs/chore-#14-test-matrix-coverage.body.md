@@ -2,7 +2,7 @@ Closes #14
 
 ## What changed
 
-Test matrix coverage audit + gap-fill for the MVP CLI. Closes all 5 GAPS from the test matrix coverage audit in one PR, with 31 new test scenarios bringing the total from 122 to 153.
+Test matrix coverage audit + gap-fill for the MVP CLI. Closes all 5 GAPS from the test matrix coverage audit in one PR, with 37 new test cases bringing the total from 122 to 159.
 
 - `docs/design/test-matrix.md` (new, ~165 lines) — documents the 6x3 feature × format matrix, the 5 GAPs, the cross-format parity dimension, the cross-cutting scenarios, the fixture ownership table, and the GAP-to-test-file traceability.
 - 5 new fixtures in `tests/DotnetSlnxItems.Cli.Tests/Fixtures/`:
@@ -18,11 +18,19 @@ Test matrix coverage audit + gap-fill for the MVP CLI. Closes all 5 GAPS from th
 ## How it was verified
 
 - `dotnet build` clean (0 warnings, 0 errors; `TreatWarningsAsErrors=true`).
-- `dotnet test` — **153/153 pass**:
+- `dotnet test` — **159/159 pass**:
   - `tests/DotnetSlnxItems.Core.Tests` 46/46 (42 pre-existing + 4 new GAP 4 `[Fact]`s).
-  - `tests/DotnetSlnxItems.Cli.Tests` 107/107 (80 pre-existing + 31 new: 4 GAP 4 paired `[Theory]`s, 10 round-trip `[Fact]`s, 12 corrupt `[Fact]`s, 3 root `[Fact]`s, and the `[Theory]` × 2 `[InlineData]` rows from GAP 1 collapse expand the test count by ~2 per file even though the method count shrank).
+  - `tests/DotnetSlnxItems.Cli.Tests` 113/113 (80 pre-existing + 33 new: 4 GAP 4 paired `[Theory]`s × 2 `[InlineData]` rows, 10 round-trip `[Fact]`s, 12 corrupt `[Fact]`s, 3 root `[Fact]`s, and the GAP 1 `[Theory]` × 2 `[InlineData]` conversion in `SyncCommandTests` adds +1 case).
 - `dotnet format whitespace --verify-no-changes` clean.
-- **Apply-phase mutation sanity check PASSED.** On `AddFile_SingleFile_AppendsToSolution[single-project.sln]`, mutated `Assert.Equal(0, run.Result.ExitCode)` to `Assert.Equal(99, run.Result.ExitCode)`. Filtered `dotnet test --filter "FullyQualifiedName~AddFile_SingleFile"` failed with `Expected: 99, Actual: 0`. The mutation was reverted; the test passes again. **The mutation commit does NOT exist in the history** — only reverted in the working tree.
+- **Apply-phase mutation sanity check PASSED.** On `AddFile_SingleFile_AppendsToSolution[single-project.sln]`, mutated `Assert.Equal(0, run.Result.ExitCode)` to `Assert.Equal(99, run.Result.ExitCode)`. Filtered `dotnet test --filter "FullyQualifiedName~AddFile_SingleFile"` failed with `Expected: 99, Actual: 0` on both `[InlineData]` rows. The mutation was reverted; the tests pass again. **The mutation commit does NOT exist in the history** — only reverted in the working tree.
+
+## Test count note vs design forecast
+
+Design #1117 forecast +31 net (122 → 153). Actual +37 net (122 → 159). The +6 overshoot is split between:
+- **+4 from GAP 1 collapse math.** Design assumed the 3 List happy-path read pairs were 6 `[Fact]`s (1 per format, 3 pairs × 2 = 6) and that the Sync `[Theory]` collapse adds 1 net (1 → 2 cases). The pre-existing code actually had only 3 `[Fact]`s in List (1 per pair, not 1 per format), so 3 `[Theory]`s × 2 `[InlineData]` rows = 6 cases is +3, not 0. The +1 from Sync matches the design. Total: +4.
+- **+2 from GAP 4 Core MVP-preservation tests.** Design #1117 §Test Plan counted only 2 Core `[Fact]`s for GAP 4 (the `requireExistingFolder: true` contract). The apply task list T5 explicitly required 2 additional `[Fact]`s for the default-`false`-preserves-MVP-behavior contract. Total: +2.
+
+Both deltas are within the size:exception budget; the PR body overshoot is the same as the design's overall forecast. No tests were removed to compensate.
 
 ## Line count — `size:exception` data point
 
@@ -31,7 +39,7 @@ Test matrix coverage audit + gap-fill for the MVP CLI. Closes all 5 GAPS from th
 - The line overshoot is driven by:
   1. The 12 corrupt-input tests in a new file (`CorruptInputTests.cs`, ~280 lines) plus the 3 root tests in another new file (`RootCommandTests.cs`, ~95 lines) — both fresh, no edits to share.
   2. The 10 round-trip tests as separate `[Fact]`s rather than a `[Theory]` × N matrix, because the pre-mutation setup is per-test (creating the sloppy fixture on disk, possibly creating a target folder first).
-  3. The 4 GAP 4 tests + the 2 Core tests + the 2 MVP-behavior tests + the `[Theory]` × 2 `[InlineData]` expansion in the GAP 1 collapse = more test method bodies than the design's net +31 forecast acknowledged.
+  3. The 4 GAP 4 tests + the 4 Core tests + the 2 MVP-behavior tests + the `[Theory]` × 2 `[InlineData]` expansion in the GAP 1 collapse = more test method bodies than the design's net +31 forecast acknowledged (actual +37, see "Test count note vs design forecast" below).
 
 ## Reviewer notes
 
@@ -44,10 +52,11 @@ Test matrix coverage audit + gap-fill for the MVP CLI. Closes all 5 GAPS from th
 7. **GAP 4 CLI test for `RemoveFile` on `sloppy-project`.** The round-trip test `RemoveFile_RoundTrip_OnSloppyProject*` passes `--solution-folder Misc` because the file targeted for removal lives in `/Misc/`, not the default `/Solution Items/`. The folder exists in `sloppy-project.{sln,slnx}`, so the new GAP 4 contract is satisfied.
 8. **Corrupt fixture design choice.** The original `corrupt.sln` sketch in design #1117 deleted the `EndProject` terminator after a `Project(...)` block. The persistence library is lenient about that — the file loads with 0 items instead of throwing. The fixture was changed to drop the `Microsoft Visual Studio Solution File` header line, which trips the library with a clean `PersistenceError("Not a solution file.")` → exit 1. The original `corrupt.slnx` sketch (truncated mid-element) was kept as-is because it does throw with a clean XML parser message. This is the "fallback" the design acknowledged in §Risks.
 9. **Round-trip fixture content limitation.** The pre-mutation `ListAsync` baseline can only assert Solution Items (folders + files), not project entities. The `sloppy-project.{sln,slnx}` round-trip test relies on the fact that the CLI does not throw an unhandled exception as the proxy for "project entities were not disturbed". The test bodies still assert the Solution Items preservation explicitly via `ListAsync` post-mutation, which is the strong signal we can observe without extending Core's public API.
-10. **`size:exception` justification.** The 400-line MVP review budget is intentionally conservative for the per-issue PR cadence. Issue #14 is an audit + gap-fill change with no new public type (only an optional Core parameter) and no new dependency. The ~880 net insertions is consistent with the precedent PRs (#11, #43, #45, #48) that all crossed the budget in service of closing a complete capability. A chained split would have produced 5 review-boundary-aligned PRs (one per GAP) with no functional benefit; the single-PR shape is the right call.
-11. **`PublicAPI.Unshipped.txt` source-of-truth.** RS0016 is silent in this environment per obs #1067, so the analyzer will not fail the build if the file drifts, but the file is the contract surface and was updated explicitly. Diff: `AddFilesAsync` signature gains `bool requireExistingFolder = false` before `CancellationToken`; `RemoveFilesAsync` signature gains the same. No new enum value, no new public type, no new record.
-12. **No `Co-Authored-By:` line.** Conventional commits only. 14 commits total (per design #1117 §Commit Plan, with the format commit as a conditional addition).
-13. **Closes #14 ONLY.** Memory #1084 lock. No parent issue to reference.
+10. **Test count overshoot vs design forecast.** Design #1117 forecast +31 net (122 → 153). Actual +37 net (122 → 159). The +6 overshoot is documented in the "Test count note vs design forecast" section above. Both deltas are within the size:exception budget.
+11. **`size:exception` justification.** The 400-line MVP review budget is intentionally conservative for the per-issue PR cadence. Issue #14 is an audit + gap-fill change with no new public type (only an optional Core parameter) and no new dependency. The ~880 net insertions is consistent with the precedent PRs (#11, #43, #45, #48) that all crossed the budget in service of closing a complete capability. A chained split would have produced 5 review-boundary-aligned PRs (one per GAP) with no functional benefit; the single-PR shape is the right call.
+12. **`PublicAPI.Unshipped.txt` source-of-truth.** RS0016 is silent in this environment per obs #1067, so the analyzer will not fail the build if the file drifts, but the file is the contract surface and was updated explicitly. Diff: `AddFilesAsync` signature gains `bool requireExistingFolder = false` before `CancellationToken`; `RemoveFilesAsync` signature gains the same. No new enum value, no new public type, no new record.
+13. **No `Co-Authored-By:` line.** Conventional commits only. 19 commits total (per design #1117 §Commit Plan, with the format commit as a conditional addition; actual matches design).
+14. **Closes #14 ONLY.** Memory #1084 lock. No parent issue to reference.
 
 ## Commit list
 
