@@ -18,7 +18,7 @@ When `--manifest` is not specified, `sync` looks for `.slnx-items.yaml` in the c
 
 ## Schema
 
-The manifest's top-level keys are **folder names**. The value of each key is a **list of file paths** to place under that folder. Folder names use `/` as a separator for nesting. File paths are relative to the manifest's location.
+The manifest's top-level keys are **folder names**. The value of each key is a **list of file paths** to place under that folder. Folder names use `/` as a separator for nesting. **File paths are always relative to the manifest file's directory** (the repo root for the default `.slnx-items.yaml`), not to the folder name declared as the key. This is the same convention as `.gitignore`, `.dockerignore`, and most build-tool manifests: a single anchor (the manifest) for every relative path.
 
 ```yaml
 "Solution Items":
@@ -31,9 +31,12 @@ Build:
   - Directory.Build.targets
   - Directory.Packages.props
 
+# The folder name has a `/` (creating /docs/ and /docs/infrastructure/),
+# but each file path is still relative to the manifest directory. The
+# directory prefix is therefore repeated; this is intentional, not a bug.
 docs/infrastructure:
-  - setup.md
-  - README.md
+  - docs/infrastructure/setup.md
+  - docs/infrastructure/README.md
 ```
 
 ### Folder name rules
@@ -52,7 +55,7 @@ There are no reserved keys. A folder literally named `target`, `version`, or any
 
 ### File path rules
 
-- File paths are **relative to the manifest file's directory** (the repo root for the default `.slnx-items.yaml`). This keeps the manifest portable alongside the code it describes.
+- File paths are **always relative to the manifest file's directory** (the repo root for the default `.slnx-items.yaml`). They are **not** relative to the declared folder key. To put `setup.md` (which lives at `docs/infrastructure/setup.md` on disk) under a folder named `docs/infrastructure`, the manifest must list the full repo-relative path: `docs/infrastructure: - docs/infrastructure/setup.md`. This mirrors `.gitignore` / `.dockerignore` semantics, where a single anchor is the source of truth for every relative path.
 - The CLI/service converts the relative path to the path stored in the solution (which is relative to the solution file's directory). For the default repo-root case, both are the same relative path.
 - A file path that points to a non-existent file on disk is a **sync error**. The manifest is a desired-state declaration; the files must exist before `sync` runs.
 - An absolute file path is an **error**. Manifests are repository-relative.
@@ -138,6 +141,10 @@ The full reference manifest at the repo root (`.slnx-items.yaml`) covers the mos
 #
 # Declares folders and files that should appear in the solution.
 # This file is consumed by `slnx-items sync`.
+#
+# Reminder: every file path under each folder key is relative to
+# THIS file's directory, not to the folder name. The repeated
+# `docs/infrastructure/` prefix on the last block is intentional.
 
 # The conventional default folder for things VS shows at the top.
 "Solution Items":
@@ -151,17 +158,19 @@ Build:
   - Directory.Build.targets
   - Directory.Packages.props
 
-# Nested folder using `/` as separator.
+# Nested folder using `/` as separator. The path of each file
+# repeats the directory prefix because the path is anchored at
+# the manifest, not at the folder key.
 docs/infrastructure:
-  - setup.md
-  - README.md
+  - docs/infrastructure/setup.md
+  - docs/infrastructure/README.md
 ```
 
 This is a small, realistic example. It exercises:
 - Quoted folder name with a space (`"Solution Items"`)
 - Top-level folder (`Build`)
 - Nested folder path (`docs/infrastructure` — creates both `/docs/` and `/docs/infrastructure/`)
-- File paths relative to the repo root
+- File paths relative to the manifest (repo root in the default case)
 
 ## Validation rules summary
 
