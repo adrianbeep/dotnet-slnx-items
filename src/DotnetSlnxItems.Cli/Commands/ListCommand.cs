@@ -30,10 +30,11 @@ namespace DotnetSlnxItems.Cli.Commands;
 /// addition disproportionate to the trivia. Empty and
 /// slashes-only inputs throw <see cref="SolutionItemsException"/>
 /// with <see cref="SolutionItemsErrorKind.InvalidFolderPath"/>,
-/// which <see cref="ErrorMapper"/> routes to exit 6. A folder that
+/// which <see cref="ErrorMapper"/> routes to
+/// <see cref="CliExitCodes.InvalidFolderPath"/>. A folder that
 /// exists nowhere in the solution throws
 /// <see cref="SolutionItemsErrorKind.FolderNotFound"/>, routed to
-/// exit 1.
+/// <see cref="CliExitCodes.Unhandled"/>.
 /// </para>
 /// <para>
 /// This is a read-only command: it never calls
@@ -90,7 +91,7 @@ public static class ListCommand
         if (target is null)
         {
             Console.Error.WriteLine(NoSolutionInCwdMessage);
-            return 2;
+            return CliExitCodes.NoSolutionInCwd;
         }
 
         SolutionItemsService service;
@@ -119,9 +120,9 @@ public static class ListCommand
 
                 // CLI replicates Core's NormalizeFolderPath: "/" +
                 // trim('/') + "/". Empty/slashes-only input
-                // triggers InvalidFolderPath (exit 6) — the same
-                // route Core would take if the validation lived
-                // there.
+                // triggers InvalidFolderPath
+                // (CliExitCodes.InvalidFolderPath) — the same route
+                // Core would take if the validation lived there.
                 if (folderInput.Trim('/').Length == 0)
                 {
                     throw new SolutionItemsException(

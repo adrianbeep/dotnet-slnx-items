@@ -61,7 +61,7 @@ public static class AddFileCommand
             if (!File.Exists(path))
             {
                 Console.Error.WriteLine($"File not found: '{path}'");
-                return 1;
+                return CliExitCodes.Unhandled;
             }
         }
 
@@ -72,7 +72,7 @@ public static class AddFileCommand
         if (target is null)
         {
             Console.Error.WriteLine(NoSolutionInCwdMessage);
-            return 2;
+            return CliExitCodes.NoSolutionInCwd;
         }
 
         SolutionItemsService service;
@@ -120,10 +120,11 @@ public static class AddFileCommand
                 // When the user explicitly named --solution-folder,
                 // the folder must already exist in the solution;
                 // Core throws FolderNotFound → ErrorMapper routes to
-                // exit 1 with the "was not found" message. When
-                // --solution-folder is absent we keep the default
-                // auto-create so the default /Solution Items/ flow
-                // still works on a fresh solution.
+                // CliExitCodes.Unhandled with the "was not found"
+                // message. When --solution-folder is absent we keep
+                // the default auto-create so the default
+                // /Solution Items/ flow still works on a fresh
+                // solution.
                 await service.AddFilesAsync(
                     newInputPaths,
                     solutionFolderOptionValue,
