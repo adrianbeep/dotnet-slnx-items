@@ -96,9 +96,9 @@ public class SyncCommandTests : IDisposable
             dir =>
             {
                 CopyFixture(dir, "single-project.sln", "single-project.csproj");
-                CopyFixture(dir, "slnx-items-empty.yaml", ".slnx-items.yaml");
+                CopyFixture(dir, "slnx-items-empty.yaml");
             },
-            "sync");
+            "sync", "--manifest", "slnx-items-empty.yaml");
 
         Assert.Equal(0, run.Result.ExitCode);
         Assert.Contains("Created folder '/Solution Items/'.", run.Result.StdOut);
@@ -152,9 +152,9 @@ public class SyncCommandTests : IDisposable
                 File.WriteAllText(Path.Combine(dir, "Directory.Build.props"), "<Project />");
                 File.WriteAllText(Path.Combine(dir, "Directory.Build.targets"), "<Project />");
                 File.WriteAllText(Path.Combine(dir, "setup.md"), "x");
-                CopyFixture(dir, "slnx-items-multi.yaml", ".slnx-items.yaml");
+                CopyFixture(dir, "slnx-items-multi.yaml");
             },
-            "sync");
+            "sync", "--manifest", "slnx-items-multi.yaml");
 
         Assert.Equal(0, run.Result.ExitCode);
         Assert.Contains("Created folder '/Solution Items/'.", run.Result.StdOut);
@@ -172,8 +172,8 @@ public class SyncCommandTests : IDisposable
         Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Solution Items/");
         Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Build/");
         Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/docs/infrastructure/");
-        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "Build/Directory.Build.props");
-        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "Build/Directory.Build.targets");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "Directory.Build.props");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "Directory.Build.targets");
         Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == ".editorconfig");
         Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "setup.md");
     }
@@ -190,14 +190,14 @@ public class SyncCommandTests : IDisposable
         File.WriteAllText(Path.Combine(tempDir, "Directory.Build.props"), "<Project />");
         File.WriteAllText(Path.Combine(tempDir, "Directory.Build.targets"), "<Project />");
         File.WriteAllText(Path.Combine(tempDir, "setup.md"), "x");
-        CopyFixture(tempDir, "slnx-items-multi.yaml", ".slnx-items.yaml");
+        CopyFixture(tempDir, "slnx-items-multi.yaml");
 
         // First run: creates everything declared in the manifest.
-        CliResult firstRun = CliRunner.RunWithCwd(tempDir, "sync");
+        CliResult firstRun = CliRunner.RunWithCwd(tempDir, "sync", "--manifest", "slnx-items-multi.yaml");
         Assert.Equal(0, firstRun.ExitCode);
 
         // Second run: nothing to do, prints only the zero summary.
-        CliResult secondRun = CliRunner.RunWithCwd(tempDir, "sync");
+        CliResult secondRun = CliRunner.RunWithCwd(tempDir, "sync", "--manifest", "slnx-items-multi.yaml");
         Assert.Equal(0, secondRun.ExitCode);
         Assert.Contains("Synced 0 folders and 0 files.", secondRun.StdOut);
         Assert.DoesNotContain("Created folder", secondRun.StdOut);
@@ -216,9 +216,9 @@ public class SyncCommandTests : IDisposable
                 SolutionItemsService service = await SolutionItemsService.CreateAsync(sln);
                 await service.AddFolderAsync("Solution Items");
                 await service.SaveAsync();
-                CopyFixture(dir, "slnx-items-empty.yaml", ".slnx-items.yaml");
+                CopyFixture(dir, "slnx-items-empty.yaml");
             },
-            "sync");
+            "sync", "--manifest", "slnx-items-empty.yaml");
 
         Assert.Equal(0, run.Result.ExitCode);
         Assert.DoesNotContain("Created folder", run.Result.StdOut);
@@ -260,9 +260,9 @@ public class SyncCommandTests : IDisposable
             dir =>
             {
                 CopyFixture(dir, "single-project.sln", "single-project.csproj");
-                CopyFixture(dir, "slnx-items-empty.yaml", ".slnx-items.yaml");
+                CopyFixture(dir, "slnx-items-empty.yaml");
             },
-            "sync", "--dry-run");
+            "sync", "--manifest", "slnx-items-empty.yaml", "--dry-run");
 
         Assert.Equal(0, run.Result.ExitCode);
         Assert.Contains("[DRY-RUN] Would create folder '/Solution Items/'.", run.Result.StdOut);
@@ -316,9 +316,9 @@ public class SyncCommandTests : IDisposable
             dir =>
             {
                 CopyFixture(dir, "single-project.sln", "single-project.csproj");
-                CopyFixture(dir, "slnx-items-bad-yaml.yaml", ".slnx-items.yaml");
+                CopyFixture(dir, "slnx-items-bad-yaml.yaml");
             },
-            "sync");
+            "sync", "--manifest", "slnx-items-bad-yaml.yaml");
 
         Assert.Equal(1, run.Result.ExitCode);
         Assert.Contains("Invalid manifest", run.Result.Stderr);
@@ -352,9 +352,9 @@ public class SyncCommandTests : IDisposable
             dir =>
             {
                 CopyFixture(dir, "single-project.sln", "single-project.csproj");
-                CopyFixture(dir, "slnx-items-absolute-path.yaml", ".slnx-items.yaml");
+                CopyFixture(dir, "slnx-items-absolute-path.yaml");
             },
-            "sync");
+            "sync", "--manifest", "slnx-items-absolute-path.yaml");
 
         Assert.Equal(1, run.Result.ExitCode);
         Assert.Contains("Invalid manifest", run.Result.Stderr);
@@ -371,10 +371,10 @@ public class SyncCommandTests : IDisposable
                 CopyFixture(dir, "single-project.sln", "single-project.csproj");
                 File.WriteAllText(Path.Combine(dir, "x.slnf"), "<solution />");
                 File.WriteAllText(
-                    Path.Combine(dir, ".slnx-items.yaml"),
+                    Path.Combine(dir, "manifest.yaml"),
                     "Build:\n");
             },
-            "sync", "--solution", "x.slnf");
+            "sync", "--manifest", "manifest.yaml", "--solution", "x.slnf");
 
         Assert.Equal(4, run.Result.ExitCode);
         Assert.Contains(".slnf", run.Result.Stderr);
