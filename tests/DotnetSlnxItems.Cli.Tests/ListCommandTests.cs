@@ -111,7 +111,7 @@ public class ListCommandTests : IDisposable
             "list");
 
         Assert.Equal(0, run.Result.ExitCode);
-        string[] lines = run.Result.StdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        string[] lines = run.Result.StdOut.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(new[] { "/Build/" }, lines);
     }
 
@@ -135,7 +135,7 @@ public class ListCommandTests : IDisposable
             "list");
 
         Assert.Equal(0, run.Result.ExitCode);
-        string[] lines = run.Result.StdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        string[] lines = run.Result.StdOut.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(new[] { "/Build/", "  Directory.Build.props" }, lines);
     }
 
@@ -162,7 +162,7 @@ public class ListCommandTests : IDisposable
             "list");
 
         Assert.Equal(0, run.Result.ExitCode);
-        string[] lines = run.Result.StdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        string[] lines = run.Result.StdOut.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(new[] { "/Build/", "  Directory.Build.props", "/Solution Items/", "  Notes.md" }, lines);
     }
 
@@ -197,7 +197,7 @@ public class ListCommandTests : IDisposable
             "list");
 
         Assert.Equal(0, run.Result.ExitCode);
-        string[] lines = run.Result.StdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        string[] lines = run.Result.StdOut.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(new[] { "/A/", "  A.md", "/B/", "  B.md" }, lines);
     }
 
@@ -222,7 +222,7 @@ public class ListCommandTests : IDisposable
             "list");
 
         Assert.Equal(0, run.Result.ExitCode);
-        string[] lines = run.Result.StdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        string[] lines = run.Result.StdOut.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(new[] { "/docs/", "  /docs/infra/", "    foo.md" }, lines);
     }
 
