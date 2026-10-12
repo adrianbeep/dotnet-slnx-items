@@ -106,11 +106,13 @@ public static class SyncCommand
 
         // Pre-flight validation. CLI-owned: Core's validation lives
         // in AddFolderAsync/AddFilesAsync and returns InvalidFolderPath
-        // (exit 6) which is the wrong shape for sync — sync is
-        // declarative and an InvalidManifest (exit 1) is more honest
-        // about what the user got wrong. File existence check happens
-        // here too; failing before any Add* call is what guarantees
-        // the "no partial state" rule from docs/design/manifest-schema.md.
+        // (CliExitCodes.InvalidFolderPath) which is the wrong shape
+        // for sync — sync is declarative and an InvalidManifest
+        // (CliExitCodes.Unhandled) is more honest about what the
+        // user got wrong. File existence check happens here too;
+        // failing before any Add* call is what guarantees the
+        // "no partial state" rule from
+        // docs/design/manifest-schema.md.
         string manifestDir = Path.GetDirectoryName(Path.GetFullPath(manifestPath))
             ?? Environment.CurrentDirectory;
 
@@ -164,7 +166,7 @@ public static class SyncCommand
         if (target is null)
         {
             Console.Error.WriteLine(NoSolutionInCwdMessage);
-            return 2;
+            return CliExitCodes.NoSolutionInCwd;
         }
 
         SolutionItemsService service;

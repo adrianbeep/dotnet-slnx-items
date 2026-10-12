@@ -49,15 +49,15 @@ public static class AddFolderCommand
         // CLI-level pre-flight: reject .. and absolute paths here so
         // the user gets a clear error before any service call. Core
         // also has folder-name validation but for a different
-        // failure mode (empty/whitespace/slashes-only); both map to
-        // exit 6 via ErrorMapper.
+        // failure mode (empty/whitespace/slashes-only); both share
+        // CliExitCodes.InvalidFolderPath per the locked CLI contract.
         if (name.Contains("..", StringComparison.Ordinal)
             || name.StartsWith("/", StringComparison.Ordinal))
         {
             Console.Error.WriteLine(
                 $"Invalid folder name: '{name}'. " +
                 $"Folder names cannot contain '..' or be absolute paths.");
-            return 6;
+            return CliExitCodes.InvalidFolderPath;
         }
 
         // Resolve target solution. Explicit --solution wins;
@@ -68,7 +68,7 @@ public static class AddFolderCommand
         if (target is null)
         {
             Console.Error.WriteLine(NoSolutionInCwdMessage);
-            return 2;
+            return CliExitCodes.NoSolutionInCwd;
         }
 
         SolutionItemsService service;

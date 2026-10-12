@@ -1,3 +1,4 @@
+using DotnetSlnxItems.Cli;
 using DotnetSlnxItems.Cli.Tests.TestHelpers;
 using DotnetSlnxItems.Core;
 
@@ -20,18 +21,19 @@ namespace DotnetSlnxItems.Cli.Tests;
 /// <para>
 /// Exit code convention: every test that runs the CLI to completion
 /// asserts on <c>run.Result.ExitCode</c> via <c>Assert.Equal</c>.
-/// The mapping from CLI exit code to the originating condition lives
-/// in <c>src/DotnetSlnxItems.Cli/Errors/ErrorMapper.cs</c>:
-/// 1 = catch-all (<c>FolderNotFound</c>, <c>PersistenceError</c>,
-/// unhandled),
-/// 2 = "no solution in cwd" (CLI pre-flight) or Core
-/// <c>SolutionFileNotFound</c>,
-/// 3 = Core <c>UnsupportedFormat</c>,
-/// 4 = Core <c>SlnfNotSupported</c>,
-/// 5 = Core <c>AmbiguousSolutionInDirectory</c>,
-/// 6 = bad folder name (CLI pre-flight for <c>..</c>/absolute paths,
-/// or Core <c>InvalidFolderPath</c> for empty/whitespace/slashes),
-/// 7 = Core <c>InvalidFilePath</c>.
+/// Exit codes are taken from <see cref="CliExitCodes"/>; the
+/// authoritative contract lives in
+/// <c>src/DotnetSlnxItems.Cli/CliExitCodes.cs</c>:
+/// 1 <c>Unhandled</c> (catch-all for <c>FolderNotFound</c>,
+/// <c>PersistenceError</c>, unhandled),
+/// 2 <c>NoSolutionInCwd</c> (CLI pre-flight),
+/// 3 <c>SolutionFileNotFound</c> (Core),
+/// 4 <c>UnsupportedFormat</c> (Core),
+/// 5 <c>SlnfNotSupported</c> (Core),
+/// 6 <c>AmbiguousSolutionInDirectory</c> (Core),
+/// 7 <c>InvalidFolderPath</c> (Core empty/whitespace/slashes, or
+/// CLI pre-flight for <c>..</c>/absolute paths),
+/// 8 <c>InvalidFilePath</c> (Core, path outside the solution dir).
 /// </para>
 /// </summary>
 public class AddFolderCommandTests : IDisposable
@@ -169,7 +171,7 @@ public class AddFolderCommandTests : IDisposable
             dir => CopyFixture(dir, "single-project.sln", "single-project.csproj"),
             "add", "folder", "");
 
-        Assert.Equal(6, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.InvalidFolderPath, run.Result.ExitCode);
         Assert.Contains(
             "Invalid folder name: ''. Folder names cannot be empty or contain only slashes.",
             run.Result.Stderr);
@@ -188,7 +190,7 @@ public class AddFolderCommandTests : IDisposable
             dir => CopyFixture(dir, "single-project.sln", "single-project.csproj"),
             "add", "folder", "///");
 
-        Assert.Equal(6, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.InvalidFolderPath, run.Result.ExitCode);
         Assert.Contains(
             "Invalid folder name: '///'. Folder names cannot contain '..' or be absolute paths.",
             run.Result.Stderr);
@@ -203,7 +205,7 @@ public class AddFolderCommandTests : IDisposable
             dir => CopyFixture(dir, "single-project.sln", "single-project.csproj"),
             "add", "folder", "../etc");
 
-        Assert.Equal(6, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.InvalidFolderPath, run.Result.ExitCode);
         Assert.Contains(
             "Invalid folder name: '../etc'. Folder names cannot contain '..' or be absolute paths.",
             run.Result.Stderr);
@@ -218,7 +220,7 @@ public class AddFolderCommandTests : IDisposable
             dir => CopyFixture(dir, "single-project.sln", "single-project.csproj"),
             "add", "folder", "/etc");
 
-        Assert.Equal(6, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.InvalidFolderPath, run.Result.ExitCode);
         Assert.Contains(
             "Invalid folder name: '/etc'. Folder names cannot contain '..' or be absolute paths.",
             run.Result.Stderr);
@@ -237,7 +239,7 @@ public class AddFolderCommandTests : IDisposable
             },
             "add", "folder", "Build", "--solution", "x.slnf");
 
-        Assert.Equal(4, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.SlnfNotSupported, run.Result.ExitCode);
         Assert.Contains(".slnf", run.Result.Stderr);
     }
 
@@ -280,7 +282,7 @@ public class AddFolderCommandTests : IDisposable
             },
             "add", "folder", "Build");
 
-        Assert.Equal(5, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.AmbiguousSolutionInDirectory, run.Result.ExitCode);
         Assert.Contains("Multiple solution files found in directory '", run.Result.Stderr);
     }
 
@@ -293,7 +295,7 @@ public class AddFolderCommandTests : IDisposable
             _ => { /* no fixture */ },
             "add", "folder", "Build", "--solution", "/does/not/exist/MyApp.sln");
 
-        Assert.Equal(2, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.SolutionFileNotFound, run.Result.ExitCode);
         Assert.Contains("Solution file not found: /does/not/exist/MyApp.sln", run.Result.Stderr);
     }
 
