@@ -118,10 +118,20 @@ public static class RemoveFileCommand
         // Core no-ops on absent paths (folder.Files is null or the
         // file is missing), so calling it on all paths keeps the
         // call site symmetric with AddFileCommand and avoids a
-        // second pass.
+        // second pass. When the user explicitly passed
+        // --solution-folder, the folder must already exist in the
+        // solution; Core throws FolderNotFound → ErrorMapper routes
+        // to exit 1 with the "was not found" message. When
+        // --solution-folder is absent we keep the default
+        // silent-no-op so idempotent remove of absent files still
+        // exits 0 (matches the "file was not in the solution"
+        // stdout line above).
         try
         {
-            await service.RemoveFilesAsync(paths, solutionFolderOptionValue);
+            await service.RemoveFilesAsync(
+                paths,
+                solutionFolderOptionValue,
+                requireExistingFolder: solutionFolderOptionValue is not null);
             await service.SaveAsync();
         }
         catch (SolutionItemsException ex)
