@@ -257,14 +257,28 @@ public sealed class SolutionItemsService
     /// <c>/Foo/Bar/</c>. If <c>null</c>, the default
     /// <c>/Solution Items/</c> is used.
     /// </param>
+    /// <param name="requireExistingFolder">
+    /// When <c>true</c>, the method throws
+    /// <see cref="SolutionItemsException"/> with
+    /// <see cref="SolutionItemsErrorKind.FolderNotFound"/> if the
+    /// target folder does not already exist in the solution. When
+    /// <c>false</c> (the default), the method silently no-ops on
+    /// absent folders — the MVP behavior for idempotent remove. The
+    /// CLI passes <c>true</c> only when the user explicitly named
+    /// the folder via <c>--solution-folder</c>.
+    /// </param>
     /// <param name="ct">Cancellation token.</param>
     /// <exception cref="SolutionItemsException">
-    /// Thrown with <see cref="SolutionItemsErrorKind.InvalidFilePath"/>
+    /// Thrown with <see cref="SolutionItemsErrorKind.FolderNotFound"/>
+    /// when <paramref name="requireExistingFolder"/> is <c>true</c>
+    /// and the target folder does not exist; with
+    /// <see cref="SolutionItemsErrorKind.InvalidFilePath"/>
     /// if any file path resolves outside the solution directory.
     /// </exception>
     public Task RemoveFilesAsync(
         IReadOnlyList<string> filePaths,
         string? targetFolder = null,
+        bool requireExistingFolder = false,
         CancellationToken ct = default)
     {
         if (filePaths is null || filePaths.Count == 0)
@@ -276,6 +290,12 @@ public sealed class SolutionItemsService
             ? DefaultFolderPath
             : NormalizeFolderPath(targetFolder);
         SolutionFolderModel? folder = _solution.FindFolder(folderPath);
+        if (requireExistingFolder && folder is null)
+        {
+            throw new SolutionItemsException(
+                SolutionItemsErrorKind.FolderNotFound,
+                $"Folder '{folderPath}' was not found in the solution.");
+        }
 
         // Validate every path even if the folder does not exist: we
         // do not want a malformed path to slip through silently just
