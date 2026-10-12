@@ -8,7 +8,13 @@
     <ToolCommandName>slnx-items</ToolCommandName>
     <RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../'))</RepoRoot>
     <PackageReadmeFile>$(OutDir)README.md</PackageReadmeFile>
-    <PackageLicenseFile>$(OutDir)LICENSE</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/adrianbeep/dotnet-slnx-items</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <ProjectUrl>https://github.com/adrianbeep/dotnet-slnx-items</ProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>Copyright (c) 2026 Adrian Joaquin Naum</Copyright>
+    <PackageTags>dotnet;cli;sln;slnx;solution-items;visual-studio</PackageTags>
+    <PackageReleaseNotes>Include LICENSE in NuGet package</PackageReleaseNotes>
     <Authors>Adrian Joaquin Naum</Authors>
     <Description>Add non-project files and folders to .sln/.slnx solutions as Solution Items from the CLI.</Description>
   </PropertyGroup>
