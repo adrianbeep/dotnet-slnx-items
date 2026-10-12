@@ -25,6 +25,9 @@ internal static class ErrorMapper
             SolutionItemsErrorKind.InvalidFilePath => (exception.Message, 7),
             SolutionItemsErrorKind.FolderNotFound => (exception.Message, 1),
             SolutionItemsErrorKind.PersistenceError => (exception.Message, 1),
+            SolutionItemsErrorKind.ManifestNotFound => (exception.Message, 2),
+            SolutionItemsErrorKind.InvalidManifest => (exception.Message, 1),
+            SolutionItemsErrorKind.FileReferencedInManifestNotFound => (exception.Message, 1),
             _ => (exception.Message, 1),
         };
     }
