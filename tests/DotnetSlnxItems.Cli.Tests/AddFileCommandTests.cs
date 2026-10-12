@@ -73,37 +73,17 @@ public class AddFileCommandTests : IDisposable
         Assert.Contains("--solution-folder", run.Result.StdOut);
     }
 
-    // ---- Test 2: add a single file (.sln) ----
+    // ---- Test 2 + 3: add a single file (cross-format parity, issue #14 GAP 1) ----
 
-    [Fact]
-    public void AddFile_SingleFile_AppendsToSolution()
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void AddFile_SingleFile_AppendsToSolution(string fixture)
     {
         CliRun run = RunInTempDir(
             dir =>
             {
-                CopyFixture(dir, "single-project.sln", "single-project.csproj");
-                File.WriteAllText(Path.Combine(dir, "README.md"), "x");
-            },
-            "add", "file", "README.md");
-
-        Assert.Equal(0, run.Result.ExitCode);
-        Assert.Contains("Added: README.md", run.Result.StdOut);
-        Assert.Contains("Added 1 file(s).", run.Result.StdOut);
-
-        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
-        Assert.Contains(items, i =>
-            i.Kind == SolutionItemKind.File && i.Path == "README.md");
-    }
-
-    // ---- Test 3: add a single file (.slnx) ----
-
-    [Fact]
-    public void AddFile_SingleFile_AppendsToSlnx()
-    {
-        CliRun run = RunInTempDir(
-            dir =>
-            {
-                CopyFixture(dir, "single-project.slnx", "single-project.csproj");
+                CopyFixture(dir, fixture, "single-project.csproj");
                 File.WriteAllText(Path.Combine(dir, "README.md"), "x");
             },
             "add", "file", "README.md");
