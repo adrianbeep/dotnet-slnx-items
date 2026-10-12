@@ -1,0 +1,11 @@
+"Solution Items":
+  - .editorconfig
+  - README.md
+
+Build:
+  - Directory.Build.props
+  - Directory.Build.targets
+
+docs/infrastructure:
+  - setup.md
+  - README.md
