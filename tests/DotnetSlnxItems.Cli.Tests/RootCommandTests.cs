@@ -66,7 +66,7 @@ public class RootCommandTests : IDisposable
         CliResult result = RunCli("--version");
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("slnx-items 0.1.0", result.StdOut);
+        Assert.Contains("slnx-items 0.1.1", result.StdOut);
     }
 
     // ---- Helpers ----
