@@ -67,6 +67,8 @@ internal static class Program
 
         root.Subcommands.Add(ListCommand.Create());
 
+        root.Subcommands.Add(SyncCommand.Create());
+
         return await root.Parse(args).InvokeAsync();
     }
 }

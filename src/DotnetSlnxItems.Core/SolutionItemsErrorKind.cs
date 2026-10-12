@@ -31,4 +31,13 @@ public enum SolutionItemsErrorKind
 
     /// <summary>The underlying persistence library reported an error.</summary>
     PersistenceError,
+
+    /// <summary>The <c>.slnx-items.yaml</c> manifest file does not exist on disk.</summary>
+    ManifestNotFound = 8,
+
+    /// <summary>The manifest file is not parseable as the <c>manifest-schema.md</c> subset (bad YAML, unsafe constructs, wrong shape).</summary>
+    InvalidManifest = 9,
+
+    /// <summary>A file path declared in the manifest does not exist on disk.</summary>
+    FileReferencedInManifestNotFound = 10,
 }
