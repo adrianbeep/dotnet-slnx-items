@@ -44,8 +44,8 @@ internal static class YamlManifestReader
         SolutionItemsManifest manifest;
         try
         {
-            manifest = Deserializer.Deserialize<SolutionItemsManifest>(text)
-                ?? new SolutionItemsManifest(new Dictionary<string, IReadOnlyList<string>>());
+            Dictionary<string, List<string>>? raw = Deserializer.Deserialize<Dictionary<string, List<string>>>(text);
+            manifest = Normalize(raw);
         }
         catch (YamlException ex)
         {
@@ -56,7 +56,7 @@ internal static class YamlManifestReader
         }
 
         ValidateSafeSubset(manifestPath, text);
-        return Normalize(manifest);
+        return manifest;
     }
 
     private static void ValidateSafeSubset(string manifestPath, string text)
@@ -134,12 +134,15 @@ internal static class YamlManifestReader
         }
     }
 
-    private static SolutionItemsManifest Normalize(SolutionItemsManifest manifest)
+    private static SolutionItemsManifest Normalize(Dictionary<string, List<string>>? raw)
     {
-        Dictionary<string, IReadOnlyList<string>> normalized = new(manifest.Folders.Count);
-        foreach (KeyValuePair<string, IReadOnlyList<string>> entry in manifest.Folders)
+        Dictionary<string, IReadOnlyList<string>> normalized = new();
+        if (raw is not null)
         {
-            normalized[entry.Key] = entry.Value ?? Array.Empty<string>();
+            foreach (KeyValuePair<string, List<string>> entry in raw)
+            {
+                normalized[entry.Key] = entry.Value ?? (IReadOnlyList<string>)Array.Empty<string>();
+            }
         }
         return new SolutionItemsManifest(normalized);
     }
