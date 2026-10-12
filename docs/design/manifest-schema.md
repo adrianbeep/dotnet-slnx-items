@@ -80,15 +80,7 @@ The parser is configured to reject the unsafe subset with a clear error message 
 
 ## Semantics
 
-### Same file in one folder, listed twice
-
-If the manifest lists the same file path twice within the same folder, the second occurrence is treated as a no-op (the file is already there). `sync` does not error. The user is responsible for not doing this in the first place, but a benign duplicate does not break the sync run.
-
-```yaml
-"Solution Items":
-  - README.md
-  - README.md    # benign duplicate; sync is idempotent
-```
+The `SolutionItemsService.AddFile` core method silently dedupes — listing the same file path twice within one folder is a no-op (the second `AddFile` call detects the file is already there and skips it). The manifest processor does not need to validate this; the Core enforces it. The only case the user can observe is a file appearing in **different** folders, which is real behavior:
 
 ### Same file in two different folders
 
