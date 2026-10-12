@@ -1,0 +1,51 @@
+name: publish to nuget
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: publish-nuget-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      - name: Pack
+        run: dotnet pack src/DotnetSlnxItems.Cli -c Release --no-build -o ./artifacts
+
+      # Manual dispatch: push to GitHub Packages (staging, no risk).
+      # Anyone in the repo can install from this feed with a PAT;
+      # the package stays private to the GitHub org.
+      - name: Push to GitHub Packages
+        if: github.event_name == 'workflow_dispatch'
+        run: >-
+          dotnet nuget push "./artifacts/*.nupkg"
+          --api-key ${{ secrets.GITHUB_TOKEN }}
+          --source https://nuget.pkg.github.com/adrianbeep/dotnet-slnx-items/index.json
+
+      # Tag push: publish to the public NuGet.org registry.
+      # Requires the NUGET_API_KEY secret (set in repo settings).
+      - name: Push to NuGet.org
+        if: github.event_name == 'push'
+        run: >-
+          dotnet nuget push "./artifacts/*.nupkg"
+          --api-key ${{ secrets.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
