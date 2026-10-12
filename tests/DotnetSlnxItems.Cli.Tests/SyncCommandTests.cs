@@ -135,15 +135,17 @@ public class SyncCommandTests : IDisposable
             i.Kind == SolutionItemKind.File && i.Path == "Directory.Build.props");
     }
 
-    // ---- Test 5: multiple folders and files ----
+    // ---- Test 5: multiple folders and files (cross-format parity, issue #14 GAP 1) ----
 
-    [Fact]
-    public void Sync_MultipleFoldersAndFiles_EachCreatedAndAddedSummaryCorrect()
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void Sync_MultipleFoldersAndFiles_EachCreatedAndAddedSummaryCorrect(string fixture)
     {
         CliRun run = RunInTempDir(
             dir =>
             {
-                CopyFixture(dir, "single-project.sln", "single-project.csproj");
+                CopyFixture(dir, fixture, "single-project.csproj");
                 // slnx-items-multi.yaml has 6 file references across
                 // 5 unique files (README.md appears in two folders).
                 // Pre-create every file so the pre-flight check passes.
