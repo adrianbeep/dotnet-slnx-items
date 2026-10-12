@@ -21,13 +21,24 @@ namespace DotnetSlnxItems.Cli.Tests;
 /// <para>
 /// Exit code convention: every test that runs the CLI to completion
 /// asserts on <c>run.Result.ExitCode</c> via <c>Assert.Equal</c>.
-/// The mapping from CLI exit code to the originating condition lives
-/// in <c>src/DotnetSlnxItems.Cli/Errors/ErrorMapper.cs</c>:
+/// Exit codes are taken from <see cref="CliExitCodes"/>; the
+/// authoritative contract lives in
+/// <c>src/DotnetSlnxItems.Cli/CliExitCodes.cs</c>:
 /// 0 = success (created/added items, no-op, or dry-run),
-/// 1 = <c>InvalidManifest</c> / <c>FileReferencedInManifestNotFound</c>
-/// / <c>FolderNotFound</c> / <c>PersistenceError</c>,
-/// 2 = <c>ManifestNotFound</c> or "no solution in cwd" CLI pre-flight,
-/// 4 = Core <c>SlnfNotSupported</c> (when <c>--solution x.slnf</c>).
+/// 1 <c>Unhandled</c> (<c>InvalidManifest</c>,
+/// <c>FileReferencedInManifestNotFound</c>, <c>FolderNotFound</c>,
+/// <c>PersistenceError</c>, unhandled),
+/// 2 <c>NoSolutionInCwd</c> (CLI pre-flight),
+/// 3 <c>SolutionFileNotFound</c> (Core, including
+/// <c>ManifestNotFound</c> for sync),
+/// 4 <c>UnsupportedFormat</c> (Core),
+/// 5 <c>SlnfNotSupported</c> (Core, when <c>--solution x.slnf</c>),
+/// 6 <c>AmbiguousSolutionInDirectory</c> (Core),
+/// 7 <c>InvalidFolderPath</c> (Core; sync does not raise this
+/// directly — its <c>..</c>/absolute check raises
+/// <c>InvalidManifest</c> instead),
+/// 8 <c>InvalidFilePath</c> (Core; sync catches and re-throws as
+/// <c>InvalidManifest</c>).
 /// </para>
 /// </summary>
 public class SyncCommandTests : IDisposable

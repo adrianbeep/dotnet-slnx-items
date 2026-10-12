@@ -20,17 +20,18 @@ namespace DotnetSlnxItems.Cli.Tests;
 /// <para>
 /// Exit code convention: every test that runs the CLI to completion
 /// asserts on <c>run.Result.ExitCode</c> via <c>Assert.Equal</c>.
-/// The mapping from CLI exit code to the originating condition lives
-/// in <c>src/DotnetSlnxItems.Cli/Errors/ErrorMapper.cs</c>:
-/// 1 = catch-all (<c>FolderNotFound</c>, <c>PersistenceError</c>,
-/// unhandled),
-/// 2 = "no solution in cwd" (CLI pre-flight) or Core
-/// <c>SolutionFileNotFound</c>,
-/// 3 = Core <c>UnsupportedFormat</c>,
-/// 4 = Core <c>SlnfNotSupported</c>,
-/// 5 = Core <c>AmbiguousSolutionInDirectory</c>,
-/// 6 = Core <c>InvalidFolderPath</c>,
-/// 7 = Core <c>InvalidFilePath</c> (path outside the solution dir).
+/// Exit codes are taken from <see cref="CliExitCodes"/>; the
+/// authoritative contract lives in
+/// <c>src/DotnetSlnxItems.Cli/CliExitCodes.cs</c>:
+/// 1 <c>Unhandled</c> (catch-all for <c>FolderNotFound</c>,
+/// <c>PersistenceError</c>, unhandled),
+/// 2 <c>NoSolutionInCwd</c> (CLI pre-flight),
+/// 3 <c>SolutionFileNotFound</c> (Core),
+/// 4 <c>UnsupportedFormat</c> (Core),
+/// 5 <c>SlnfNotSupported</c> (Core),
+/// 6 <c>AmbiguousSolutionInDirectory</c> (Core),
+/// 7 <c>InvalidFolderPath</c> (Core),
+/// 8 <c>InvalidFilePath</c> (Core, path outside the solution dir).
 /// </para>
 /// </summary>
 public class RemoveFileCommandTests : IDisposable
