@@ -70,44 +70,20 @@ public class RemoveFileCommandTests : IDisposable
         Assert.Contains("--solution-folder", run.Result.StdOut);
     }
 
-    // ---- Test 2: remove a single file (.sln) ----
+    // ---- Test 2 + 3: remove a single file (cross-format parity, issue #14 GAP 1) ----
 
-    [Fact]
-    public void RemoveFile_ExistingFileInSln_FileDisappears()
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void RemoveFile_ExistingFile_FileDisappears(string fixture)
     {
         CliRun run = RunInTempDir(
             async dir =>
             {
-                string sln = CopyFixture(dir, "single-project.sln", "single-project.csproj");
+                string sln = CopyFixture(dir, fixture, "single-project.csproj");
                 File.WriteAllText(Path.Combine(dir, "README.md"), "x");
 
                 SolutionItemsService service = await SolutionItemsService.CreateAsync(sln);
-                await service.AddFilesAsync(new[] { "README.md" });
-                await service.SaveAsync();
-            },
-            "remove", "file", "README.md");
-
-        Assert.Equal(0, run.Result.ExitCode);
-        Assert.Contains("File 'README.md' removed from the solution.", run.Result.StdOut);
-        Assert.DoesNotContain("was not in the solution", run.Result.StdOut);
-
-        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
-        Assert.DoesNotContain(items, i =>
-            i.Kind == SolutionItemKind.File && i.Path == "README.md");
-    }
-
-    // ---- Test 3: remove a single file (.slnx) ----
-
-    [Fact]
-    public void RemoveFile_ExistingFileInSlnx_FileDisappears()
-    {
-        CliRun run = RunInTempDir(
-            async dir =>
-            {
-                string slnx = CopyFixture(dir, "single-project.slnx", "single-project.csproj");
-                File.WriteAllText(Path.Combine(dir, "README.md"), "x");
-
-                SolutionItemsService service = await SolutionItemsService.CreateAsync(slnx);
                 await service.AddFilesAsync(new[] { "README.md" });
                 await service.SaveAsync();
             },
