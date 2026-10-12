@@ -6,12 +6,19 @@
     <AssemblyName>dotnet-slnx-items</AssemblyName>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>slnx-items</ToolCommandName>
-    <PackageReadmeFile>../../README.md</PackageReadmeFile>
+    <RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../'))</RepoRoot>
+    <PackageReadmeFile>$(OutDir)README.md</PackageReadmeFile>
+    <Authors>Adrian Joaquin Naum</Authors>
+    <Description>Add non-project files and folders to .sln/.slnx solutions as Solution Items from the CLI.</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="../../README.md" Pack="true" PackagePath="\" />
+    <None Include="$(OutDir)README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
+
+  <Target Name="CopyReadmeToOutput" BeforeTargets="Pack;Publish">
+    <Copy SourceFiles="$(RepoRoot)/README.md" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
 
   <ItemGroup>
     <ProjectReference Include="..\DotnetSlnxItems.Core\DotnetSlnxItems.Core.csproj" />
