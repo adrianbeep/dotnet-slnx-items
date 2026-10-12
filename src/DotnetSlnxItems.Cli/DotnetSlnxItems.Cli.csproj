@@ -8,16 +8,22 @@
     <ToolCommandName>slnx-items</ToolCommandName>
     <RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../'))</RepoRoot>
     <PackageReadmeFile>$(OutDir)README.md</PackageReadmeFile>
+    <PackageLicenseFile>$(OutDir)LICENSE</PackageLicenseFile>
     <Authors>Adrian Joaquin Naum</Authors>
     <Description>Add non-project files and folders to .sln/.slnx solutions as Solution Items from the CLI.</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="$(OutDir)README.md" Pack="true" PackagePath="\" />
+    <None Include="$(OutDir)LICENSE" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <Target Name="CopyReadmeToOutput" BeforeTargets="Pack;Publish">
     <Copy SourceFiles="$(RepoRoot)/README.md" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyLicenseToOutput" BeforeTargets="Pack;Publish">
+    <Copy SourceFiles="$(RepoRoot)/LICENSE" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
   </Target>
 
   <ItemGroup>
