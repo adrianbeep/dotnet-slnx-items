@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
-      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -39,13 +39,19 @@ jobs:
           --api-key ${{ secrets.GITHUB_TOKEN }}
           --source https://nuget.pkg.github.com/adrianbeep/dotnet-slnx-items/index.json
 
-      # Tag push: publish to the public NuGet.org registry.
-      # Requires the NUGET_API_KEY secret (set in repo settings).
+      # Tag push: publish to the public NuGet.org registry via
+      # Trusted Publishing (OIDC). No API key required — the runner
+      # gets a short-lived token that NuGet.org validates against
+      # the trusted publisher configured on the package page.
+      - name: NuGet login (Trusted Publishing)
+        if: github.event_name == 'push'
+        uses: NuGet/login@v1
+        with:
+          owner: adrianbeep
+
       - name: Push to NuGet.org
         if: github.event_name == 'push'
         run: >-
           dotnet nuget push "./artifacts/*.nupkg"
-          --api-key ${{ secrets.NUGET_API_KEY }}
           --source https://api.nuget.org/v3/index.json
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          --skip-duplicate
