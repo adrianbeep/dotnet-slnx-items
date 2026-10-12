@@ -1,0 +1,8 @@
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "single-project", "single-project.csproj", "{87654321-4321-4321-4321-210987654321}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Solution xmlns="https://github.com/dotnet/slnx">
+  <Project Path="first-cs.csproj">
+    <PropertyGroup>
+      <RoundTripTestKey>preserved</RoundTripTestKey>
+      <SolutionGuid>{44444444-4444-4444-4444-444444444444}</SolutionGuid>
+    </PropertyGroup>
+  </Project>
+  <Project Path="first-fs.fsproj" />
+  <Folder Name="/Misc/">
+    <File Path="readme-in-misc.md" />
+    <File Path="license-in-misc.md" />
+  </Folder>
+</Solution>
