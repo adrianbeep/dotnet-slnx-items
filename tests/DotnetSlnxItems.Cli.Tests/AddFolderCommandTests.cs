@@ -297,6 +297,46 @@ public class AddFolderCommandTests : IDisposable
         Assert.Contains("Solution file not found: /does/not/exist/MyApp.sln", run.Result.Stderr);
     }
 
+    // ---- Test 16: round-trip on sloppy-project.sln (GAP 2) ----
+
+    [Fact]
+    public void AddFolder_RoundTrip_OnSloppyProjectSln_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir => CopyFixture(dir, "sloppy-project.sln", "first-cs.csproj", "first-fs.fsproj"),
+            "add", "folder", "NewFolder");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // Pre-existing /Misc/ folder and its 2 files must survive.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+        // The new folder must be present.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/NewFolder/");
+    }
+
+    // ---- Test 17: round-trip on sloppy-project.slnx (GAP 2) ----
+
+    [Fact]
+    public void AddFolder_RoundTrip_OnSloppyProjectSlnx_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir => CopyFixture(dir, "sloppy-project.slnx", "first-cs.csproj", "first-fs.fsproj"),
+            "add", "folder", "NewFolder");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // Pre-existing /Misc/ folder and its 2 files must survive.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+        // The new folder must be present.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/NewFolder/");
+    }
+
     // ---- Helpers ----
 
     private sealed record CliRun(CliResult Result, string PrimaryFixturePath);

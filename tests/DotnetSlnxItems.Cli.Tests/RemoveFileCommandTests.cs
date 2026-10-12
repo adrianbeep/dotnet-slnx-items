@@ -239,6 +239,52 @@ public class RemoveFileCommandTests : IDisposable
         Assert.DoesNotContain("at ", run.Result.Stderr);
     }
 
+    // ---- Test 10: round-trip on sloppy-project.sln (GAP 2) ----
+
+    [Fact]
+    public void RemoveFile_RoundTrip_OnSloppyProjectSln_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, "sloppy-project.sln", "first-cs.csproj", "first-fs.fsproj");
+                File.WriteAllText(Path.Combine(dir, "readme-in-misc.md"), "x");
+            },
+            "remove", "file", "readme-in-misc.md", "--solution-folder", "Misc");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // The targeted file is gone.
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        // The /Misc/ folder and the other file must survive.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+    }
+
+    // ---- Test 11: round-trip on sloppy-project.slnx (GAP 2) ----
+
+    [Fact]
+    public void RemoveFile_RoundTrip_OnSloppyProjectSlnx_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, "sloppy-project.slnx", "first-cs.csproj", "first-fs.fsproj");
+                File.WriteAllText(Path.Combine(dir, "readme-in-misc.md"), "x");
+            },
+            "remove", "file", "readme-in-misc.md", "--solution-folder", "Misc");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // The targeted file is gone.
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        // The /Misc/ folder and the other file must survive.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+    }
+
     // ---- Helpers ----
 
     private sealed record CliRun(CliResult Result, string PrimaryFixturePath);

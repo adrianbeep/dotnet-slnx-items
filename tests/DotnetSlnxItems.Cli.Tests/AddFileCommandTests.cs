@@ -439,6 +439,54 @@ public class AddFileCommandTests : IDisposable
         Assert.DoesNotContain("at ", run.Result.Stderr);
     }
 
+    // ---- Test 20: round-trip on sloppy-project.sln (GAP 2) ----
+
+    [Fact]
+    public void AddFile_RoundTrip_OnSloppyProjectSln_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, "sloppy-project.sln", "first-cs.csproj", "first-fs.fsproj");
+                File.WriteAllText(Path.Combine(dir, "newfile.md"), "x");
+            },
+            "add", "file", "newfile.md");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // Pre-existing entities must all still be present.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+        // The new file must also be present.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "newfile.md");
+    }
+
+    // ---- Test 21: round-trip on sloppy-project.slnx (GAP 2) ----
+
+    [Fact]
+    public void AddFile_RoundTrip_OnSloppyProjectSlnx_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, "sloppy-project.slnx", "first-cs.csproj", "first-fs.fsproj");
+                File.WriteAllText(Path.Combine(dir, "newfile.md"), "x");
+            },
+            "add", "file", "newfile.md");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // Pre-existing entities must all still be present.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+        // The new file must also be present.
+        Assert.Contains(items, i => i.Kind == SolutionItemKind.File && i.Path == "newfile.md");
+    }
+
     // ---- Helpers ----
 
     private sealed record CliRun(CliResult Result, string PrimaryFixturePath);

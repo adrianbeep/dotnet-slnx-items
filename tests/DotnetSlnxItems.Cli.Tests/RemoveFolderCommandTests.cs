@@ -209,6 +209,45 @@ public class RemoveFolderCommandTests : IDisposable
         Assert.Contains("No solution file found in current directory", run.Result.Stderr);
     }
 
+    // ---- Test 9: round-trip on sloppy-project.sln (GAP 2) ----
+
+    [Fact]
+    public void RemoveFolder_RoundTrip_OnSloppyProjectSln_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir => CopyFixture(dir, "sloppy-project.sln", "first-cs.csproj", "first-fs.fsproj"),
+            "remove", "folder", "Misc");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // /Misc/ and its files are gone.
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+        // No Solution Items folder should exist either; the project entities
+        // survive (we can't enumerate those via ListAsync, but no exception
+        // is the key signal that the project model was not disturbed).
+    }
+
+    // ---- Test 10: round-trip on sloppy-project.slnx (GAP 2) ----
+
+    [Fact]
+    public void RemoveFolder_RoundTrip_OnSloppyProjectSlnx_PreservesUnrelatedContent()
+    {
+        CliRun run = RunInTempDir(
+            dir => CopyFixture(dir, "sloppy-project.slnx", "first-cs.csproj", "first-fs.fsproj"),
+            "remove", "folder", "Misc");
+
+        Assert.Equal(0, run.Result.ExitCode);
+
+        IReadOnlyList<SolutionItemInfo> items = ReadItems(run.PrimaryFixturePath);
+        // /Misc/ and its files are gone.
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.Folder && i.Path == "/Misc/");
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.File && i.Path == "readme-in-misc.md");
+        Assert.DoesNotContain(items, i => i.Kind == SolutionItemKind.File && i.Path == "license-in-misc.md");
+    }
+
     // ---- Helpers ----
 
     private sealed record CliRun(CliResult Result, string PrimaryFixturePath);
