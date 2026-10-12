@@ -195,10 +195,18 @@ public class AddFileCommandTests : IDisposable
     public void AddFile_WithSolutionFolder_PlacesFileInNamedFolder()
     {
         CliRun run = RunInTempDir(
-            dir =>
+            async dir =>
             {
-                CopyFixture(dir, "single-project.sln", "single-project.csproj");
+                string sln = CopyFixture(dir, "single-project.sln", "single-project.csproj");
                 File.WriteAllText(Path.Combine(dir, "README.md"), "x");
+
+                // Pre-create /Build/ so the explicit --solution-folder
+                // contract (issue #14 GAP 4) is satisfied: an explicit
+                // folder name must already exist in the solution; the
+                // CLI no longer auto-creates it.
+                SolutionItemsService service = await SolutionItemsService.CreateAsync(sln);
+                await service.AddFolderAsync("Build");
+                await service.SaveAsync();
             },
             "add", "file", "README.md", "--solution-folder", "Build");
 
@@ -427,6 +435,28 @@ public class AddFileCommandTests : IDisposable
             i.Kind == SolutionItemKind.File && i.Path == "A.md");
         Assert.Contains(items, i =>
             i.Kind == SolutionItemKind.File && i.Path == "B.md");
+    }
+
+    // ---- Test 19: --solution-folder missing (GAP 4 cross-format) ----
+
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void AddFile_SolutionFolderMissing_ExitsNonZeroAndStderrExplains(string fixture)
+    {
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, fixture, "single-project.csproj");
+                File.WriteAllText(Path.Combine(dir, "README.md"), "x");
+            },
+            "add", "file", "README.md", "--solution-folder", "Build");
+
+        Assert.Equal(1, run.Result.ExitCode);
+        Assert.Contains("was not found", run.Result.Stderr);
+        Assert.Contains("/Build/", run.Result.Stderr);
+        Assert.DoesNotContain("Exception:", run.Result.Stderr);
+        Assert.DoesNotContain("at ", run.Result.Stderr);
     }
 
     // ---- Helpers ----

@@ -241,6 +241,28 @@ public class RemoveFileCommandTests : IDisposable
         Assert.Contains("No solution file found in current directory", run.Result.Stderr);
     }
 
+    // ---- Test 9: --solution-folder missing (GAP 4 cross-format) ----
+
+    [Theory]
+    [InlineData("single-project.sln")]
+    [InlineData("single-project.slnx")]
+    public void RemoveFile_SolutionFolderMissing_ExitsNonZeroAndStderrExplains(string fixture)
+    {
+        CliRun run = RunInTempDir(
+            dir =>
+            {
+                CopyFixture(dir, fixture, "single-project.csproj");
+                File.WriteAllText(Path.Combine(dir, "README.md"), "x");
+            },
+            "remove", "file", "README.md", "--solution-folder", "Build");
+
+        Assert.Equal(1, run.Result.ExitCode);
+        Assert.Contains("was not found", run.Result.Stderr);
+        Assert.Contains("/Build/", run.Result.Stderr);
+        Assert.DoesNotContain("Exception:", run.Result.Stderr);
+        Assert.DoesNotContain("at ", run.Result.Stderr);
+    }
+
     // ---- Helpers ----
 
     private sealed record CliRun(CliResult Result, string PrimaryFixturePath);
