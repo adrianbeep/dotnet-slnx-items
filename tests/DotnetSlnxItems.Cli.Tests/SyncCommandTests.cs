@@ -1,3 +1,4 @@
+using DotnetSlnxItems.Cli;
 using DotnetSlnxItems.Cli.Tests.TestHelpers;
 using DotnetSlnxItems.Core;
 
@@ -305,7 +306,7 @@ public class SyncCommandTests : IDisposable
             dir => CopyFixture(dir, "single-project.sln", "single-project.csproj"),
             "sync", "--manifest", "does-not-exist.yaml");
 
-        Assert.Equal(2, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.SolutionFileNotFound, run.Result.ExitCode);
         Assert.Contains("Manifest file not found", run.Result.Stderr);
     }
 
@@ -378,7 +379,7 @@ public class SyncCommandTests : IDisposable
             },
             "sync", "--manifest", "manifest.yaml", "--solution", "x.slnf");
 
-        Assert.Equal(4, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.SlnfNotSupported, run.Result.ExitCode);
         Assert.Contains(".slnf", run.Result.Stderr);
     }
 

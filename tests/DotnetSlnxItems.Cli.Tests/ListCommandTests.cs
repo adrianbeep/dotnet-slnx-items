@@ -1,3 +1,4 @@
+using DotnetSlnxItems.Cli;
 using DotnetSlnxItems.Cli.Tests.TestHelpers;
 using DotnetSlnxItems.Core;
 
@@ -294,7 +295,7 @@ public class ListCommandTests : IDisposable
             dir => CopyFixture(dir, "single-project.sln", "single-project.csproj"),
             "list", "--folder", folderValue);
 
-        Assert.Equal(6, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.InvalidFolderPath, run.Result.ExitCode);
         Assert.Contains("cannot be empty or contain only slashes", run.Result.Stderr);
     }
 
@@ -311,7 +312,7 @@ public class ListCommandTests : IDisposable
             },
             "list", "--solution", "x.slnf");
 
-        Assert.Equal(4, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.SlnfNotSupported, run.Result.ExitCode);
         Assert.Contains(".slnf", run.Result.Stderr);
     }
 
@@ -345,7 +346,7 @@ public class ListCommandTests : IDisposable
             },
             "list");
 
-        Assert.Equal(5, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.AmbiguousSolutionInDirectory, run.Result.ExitCode);
         Assert.Contains("Multiple solution files found", run.Result.Stderr);
     }
 

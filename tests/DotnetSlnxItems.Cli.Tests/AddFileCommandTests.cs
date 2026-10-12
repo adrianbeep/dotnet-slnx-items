@@ -1,3 +1,4 @@
+using DotnetSlnxItems.Cli;
 using DotnetSlnxItems.Cli.Tests.TestHelpers;
 using DotnetSlnxItems.Core;
 
@@ -233,7 +234,7 @@ public class AddFileCommandTests : IDisposable
         string solutionPath = Path.Combine(solutionDir, "single-project.sln");
         CliResult result = RunCli(cwdDir, "add", "file", outsideFile, "--solution", solutionPath);
 
-        Assert.Equal(7, result.ExitCode);
+        Assert.Equal(CliExitCodes.InvalidFilePath, result.ExitCode);
         Assert.Contains(
             $"File path '{outsideFile}' is outside the solution directory '{solutionDir}'.",
             result.Stderr);
@@ -266,7 +267,7 @@ public class AddFileCommandTests : IDisposable
             },
             "add", "file", "README.md");
 
-        Assert.Equal(5, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.AmbiguousSolutionInDirectory, run.Result.ExitCode);
         Assert.Contains("Multiple solution files found in directory '", run.Result.Stderr);
     }
 
@@ -301,7 +302,7 @@ public class AddFileCommandTests : IDisposable
             },
             "add", "file", "README.md", "--solution", "x.slnf");
 
-        Assert.Equal(4, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.SlnfNotSupported, run.Result.ExitCode);
         Assert.Contains(".slnf", run.Result.Stderr);
     }
 
@@ -344,7 +345,7 @@ public class AddFileCommandTests : IDisposable
             },
             "add", "file", "README.md", "--solution-folder", "");
 
-        Assert.Equal(6, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.InvalidFolderPath, run.Result.ExitCode);
         Assert.Contains(
             "Invalid folder name: ''. Folder names cannot be empty or contain only slashes.",
             run.Result.Stderr);
@@ -359,7 +360,7 @@ public class AddFileCommandTests : IDisposable
             dir => File.WriteAllText(Path.Combine(dir, "README.md"), "x"),
             "add", "file", "README.md", "--solution", "/does/not/exist/MyApp.sln");
 
-        Assert.Equal(2, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.SolutionFileNotFound, run.Result.ExitCode);
         Assert.Contains("Solution file not found: /does/not/exist/MyApp.sln", run.Result.Stderr);
     }
 
@@ -379,7 +380,7 @@ public class AddFileCommandTests : IDisposable
             },
             "add", "file", "README.md", "--solution", "not-a-solution.txt");
 
-        Assert.Equal(3, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.UnsupportedFormat, run.Result.ExitCode);
         Assert.Contains("Unsupported solution file format", run.Result.Stderr);
     }
 

@@ -1,3 +1,4 @@
+using DotnetSlnxItems.Cli;
 using DotnetSlnxItems.Cli.Tests.TestHelpers;
 using DotnetSlnxItems.Core;
 
@@ -192,7 +193,7 @@ public class RemoveFolderCommandTests : IDisposable
             },
             "remove", "folder", "Build", "--solution", "x.slnf");
 
-        Assert.Equal(4, run.Result.ExitCode);
+        Assert.Equal(CliExitCodes.SlnfNotSupported, run.Result.ExitCode);
         Assert.Contains(".slnf", run.Result.Stderr);
     }
 
